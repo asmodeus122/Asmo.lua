@@ -87,20 +87,18 @@ createButton("🔍 ESP", 40, function()
     end
 end)
 
--- NOCLIP CORRIGIDO
+-- NOCLIP CORRIGIDO TOTAL
 RunService.Stepped:Connect(function()
-    if Noclip_ENABLED and localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid") then
-        for _, part in pairs(localPlayer.Character:GetDescendants()) do
+    if Noclip_ENABLED and localPlayer.Character then
+        for _, part in ipairs(localPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
                 part.Anchored = false
             end
         end
-    elseif localPlayer.Character then
-        for _, part in pairs(localPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
-            end
+        local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid and humanoid.UseJumpPower then
+            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
         end
     end
 end)
@@ -157,17 +155,16 @@ task.spawn(function()
     end
 end)
 
--- PULO INFINITO CORRIGIDO
-ContextActionService:BindAction("InfiniteJump", function(_, inputState)
-    if inputState == Enum.UserInputState.Begin and InfiniteJump_ENABLED then
+-- PULO INFINITO FUNCIONAL
+uis.JumpRequest:Connect(function()
+    if InfiniteJump_ENABLED then
         local char = localPlayer.Character
         if char and char:FindFirstChild("Humanoid") then
             char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
         end
     end
-end, false, Enum.KeyCode.Space)
+end)
 
--- Botão para pulo no mobile
 local jumpButton = createButton("🏊 Pular", 240, function()
     if InfiniteJump_ENABLED then
         local char = localPlayer.Character
@@ -199,4 +196,23 @@ createButton("⚡ Speed Boost", 340, function()
     if char and char:FindFirstChild("Humanoid") then
         char.Humanoid.WalkSpeed = SpeedBoost_ENABLED and 100 or 16
     end
+end)
+
+-- BOTÃO FLUTUANTE PARA MOSTRAR/ESCONDER MENU
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 40, 0, 40)
+toggleButton.Position = UDim2.new(0, 10, 0, 10)
+toggleButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.Text = "≡"
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.TextSize = 20
+toggleButton.ZIndex = 5
+toggleButton.Parent = gui
+
+local menuVisible = true
+
+toggleButton.MouseButton1Click:Connect(function()
+    menuVisible = not menuVisible
+    frame.Visible = menuVisible
 end)
