@@ -234,27 +234,12 @@ task.spawn(function()
     end
 end)
 
--- PULO INFINITO FUNCIONAL E COM PROTEÇÃO DE QUEDA
+-- PULO INFINITO SIMPLES (SEM PREVENÇÃO DE MORTE)
 uis.InputBegan:Connect(function(input, gp)
     if InfiniteJump_ENABLED and input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.Space then
         local char = localPlayer.Character
         if char and char:FindFirstChild("Humanoid") then
             char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        end
-    end
-end)
-
-RunService.Heartbeat:Connect(function()
-    if InfiniteJump_ENABLED and localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid") then
-        local humanoid = localPlayer.Character.Humanoid
-        humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-        humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-        humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
-        humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-
-        -- Proteção contra morte por queda
-        if humanoid.Health < humanoid.MaxHealth then
-            humanoid.Health = humanoid.MaxHealth
         end
     end
 end)
