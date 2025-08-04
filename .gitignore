@@ -165,19 +165,21 @@ task.spawn(function()
     end
 end)
 
--- NOCLIP TOTAL SEM VOLTAR
+-- NOCLIP ESTÁVEL
 RunService.Stepped:Connect(function()
     if Noclip_ENABLED and localPlayer.Character then
-        for _, part in ipairs(localPlayer.Character:GetDescendants()) do
+        local char = localPlayer.Character
+        for _, part in ipairs(char:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
                 part.Anchored = false
             end
         end
-        local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
+
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
         if humanoid then
-            humanoid:ChangeState(Enum.HumanoidStateType.FallingDown)
-            humanoid.PlatformStand = false
+            -- Muda o estado para physics para evitar queda
+            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
         end
     end
 end)
@@ -234,12 +236,27 @@ task.spawn(function()
     end
 end)
 
--- PULO INFINITO SIMPLES (SEM PREVENÇÃO DE MORTE)
+-- PULO INFINITO REAL (TECLADO E TOUCH)
 uis.InputBegan:Connect(function(input, gp)
     if InfiniteJump_ENABLED and input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.Space then
         local char = localPlayer.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end
+end)
+
+uis.TouchTapInWorld:Connect(function()
+    if InfiniteJump_ENABLED then
+        local char = localPlayer.Character
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
         end
     end
 end)
