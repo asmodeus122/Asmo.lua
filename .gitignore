@@ -1,3 +1,5 @@
+-- SCRIPT BASEADO EM STEAL A BRAINROT
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -8,138 +10,153 @@ local Noclip_ENABLED = false
 local Teleport_ENABLED = false
 local Steal_ENABLED = false
 
--- Create GUI
+-- GUI
 local gui = Instance.new("ScreenGui", localPlayer:WaitForChild("PlayerGui"))
 gui.ResetOnSpawn = false
 
-local function createButton(text, position, callback)
-	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(0, 140, 0, 40)
-	button.Position = position
-	button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-	button.TextColor3 = Color3.fromRGB(255, 255, 255)
-	button.Font = Enum.Font.GothamBold
-	button.TextSize = 14
-	button.Text = text
-	button.Parent = gui
-	button.MouseButton1Click:Connect(callback)
-	return button
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 160, 0, 280)
+frame.Position = UDim2.new(0, 10, 0.5, -140)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BorderSizePixel = 0
+frame.Parent = gui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "🧠 Mod Menu"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.Parent = frame
+
+local function createButton(text, yPos, callback)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, -20, 0, 40)
+    button.Position = UDim2.new(0, 10, 0, yPos)
+    button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Font = Enum.Font.Gotham
+    button.TextSize = 14
+    button.Text = text
+    button.Parent = frame
+    button.MouseButton1Click:Connect(callback)
+    return button
 end
 
--- ESP FUNCTION
+-- ESP
 function updateESP()
-	for _, v in pairs(workspace:GetDescendants()) do
-		if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") and v.Name:lower():find("brainrot") then
-			if not v:FindFirstChild("ESP") then
-				local billboard = Instance.new("BillboardGui", v)
-				billboard.Name = "ESP"
-				billboard.Adornee = v.HumanoidRootPart
-				billboard.Size = UDim2.new(0, 100, 0, 40)
-				billboard.AlwaysOnTop = true
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") and v.Name:lower():find("brainrot") then
+            if not v:FindFirstChild("ESP") then
+                local billboard = Instance.new("BillboardGui", v)
+                billboard.Name = "ESP"
+                billboard.Adornee = v.HumanoidRootPart
+                billboard.Size = UDim2.new(0, 100, 0, 40)
+                billboard.AlwaysOnTop = true
 
-				local label = Instance.new("TextLabel", billboard)
-				label.Size = UDim2.new(1, 0, 1, 0)
-				label.BackgroundTransparency = 1
-				label.TextColor3 = Color3.fromRGB(255, 0, 0)
-				label.Font = Enum.Font.GothamBold
-				label.TextScaled = true
-				label.Text = v.Name
-			end
-		end
-	end
+                local label = Instance.new("TextLabel", billboard)
+                label.Size = UDim2.new(1, 0, 1, 0)
+                label.BackgroundTransparency = 1
+                label.TextColor3 = Color3.fromRGB(255, 0, 0)
+                label.Font = Enum.Font.GothamBold
+                label.TextScaled = true
+                label.Text = v.Name
+            end
+        end
+    end
 end
 
--- Noclip REAL
-RunService.Stepped:Connect(function()
-	if Noclip_ENABLED and localPlayer.Character then
-		for _, part in pairs(localPlayer.Character:GetDescendants()) do
-			if part:IsA("BasePart") then
-				part.CanCollide = false
-			end
-		end
-	end
+createButton("🔍 ESP", 40, function()
+    ESP_ENABLED = not ESP_ENABLED
+    if ESP_ENABLED then
+        while ESP_ENABLED do
+            updateESP()
+            task.wait(2)
+        end
+    else
+        for _, gui in pairs(workspace:GetDescendants()) do
+            if gui:IsA("BillboardGui") and gui.Name == "ESP" then
+                gui:Destroy()
+            end
+        end
+    end
 end)
 
--- PULO INFINITO REAL
-uis.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-	if input.KeyCode == Enum.KeyCode.Space or input.UserInputType == Enum.UserInputType.Touch then
-		local char = localPlayer.Character
-		if char and char:FindFirstChild("HumanoidRootPart") then
-			char.HumanoidRootPart.Velocity = Vector3.new(0, 50, 0)
-		end
-	end
+-- NOCLIP
+RunService.Stepped:Connect(function()
+    if Noclip_ENABLED and localPlayer.Character then
+        for _, part in pairs(localPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+createButton("🧱 Noclip", 90, function()
+    Noclip_ENABLED = not Noclip_ENABLED
 end)
 
 -- AUTO TELEPORT
 function getClosestBrainrot()
-	local minDist, closest = math.huge, nil
-	for _, v in pairs(workspace:GetDescendants()) do
-		if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") and v.Name:lower():find("brainrot") then
-			local dist = (v.HumanoidRootPart.Position - localPlayer.Character.HumanoidRootPart.Position).Magnitude
-			if dist < minDist then
-				minDist = dist
-				closest = v
-			end
-		end
-	end
-	return closest
+    local minDist, closest = math.huge, nil
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") and v.Name:lower():find("brainrot") then
+            local dist = (v.HumanoidRootPart.Position - localPlayer.Character.HumanoidRootPart.Position).Magnitude
+            if dist < minDist then
+                minDist = dist
+                closest = v
+            end
+        end
+    end
+    return closest
 end
 
+createButton("🚀 Auto TP", 140, function()
+    Teleport_ENABLED = not Teleport_ENABLED
+end)
+
 task.spawn(function()
-	while task.wait(0.5) do
-		if Teleport_ENABLED and localPlayer.Character then
-			local target = getClosestBrainrot()
-			if target then
-				local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
-				if hrp then hrp.CFrame = target.HumanoidRootPart.CFrame + Vector3.new(0, 2, 0) end
-			end
-		end
-	end
+    while task.wait(0.5) do
+        if Teleport_ENABLED and localPlayer.Character then
+            local target = getClosestBrainrot()
+            if target then
+                local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then hrp.CFrame = target.HumanoidRootPart.CFrame + Vector3.new(0, 2, 0) end
+            end
+        end
+    end
 end)
 
 -- AUTO STEAL
+createButton("🏃‍♂️ Auto Steal", 190, function()
+    Steal_ENABLED = not Steal_ENABLED
+end)
+
 task.spawn(function()
-	while task.wait(1.5) do
-		if Steal_ENABLED then
-			for _, v in pairs(workspace:GetDescendants()) do
-				if v:IsA("ProximityPrompt") and v.Enabled then
-					fireproximityprompt(v)
-				end
-			end
-		end
-	end
+    while task.wait(1.5) do
+        if Steal_ENABLED then
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("ProximityPrompt") and v.Enabled then
+                    fireproximityprompt(v)
+                end
+            end
+        end
+    end
 end)
 
--- BUTTONS
-createButton("🔍 ESP", UDim2.new(0, 10, 0, 50), function()
-	ESP_ENABLED = not ESP_ENABLED
-	if ESP_ENABLED then
-		while ESP_ENABLED do
-			updateESP()
-			wait(2)
-		end
-	else
-		for _, gui in pairs(workspace:GetDescendants()) do
-			if gui:IsA("BillboardGui") and gui.Name == "ESP" then
-				gui:Destroy()
-			end
-		end
-	end
+-- PULO INFINITO (ajustado)
+uis.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.Space or input.UserInputType == Enum.UserInputType.Touch then
+        local char = localPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.Velocity = Vector3.new(0, 50, 0)
+        end
+    end
 end)
 
-createButton("🧱 Noclip", UDim2.new(0, 10, 0, 100), function()
-	Noclip_ENABLED = not Noclip_ENABLED
-end)
-
-createButton("🚀 Auto TP", UDim2.new(0, 10, 0, 150), function()
-	Teleport_ENABLED = not Teleport_ENABLED
-end)
-
-createButton("🏃‍♂️ Auto Steal", UDim2.new(0, 10, 0, 200), function()
-	Steal_ENABLED = not Steal_ENABLED
-end)
-
--- Ativando ESP e noclip por padrão (opcional)
-ESP_ENABLED = true
-Noclip_ENABLED = true
+-- Ativa automaticamente ESP e noclip se quiser
+-- ESP_ENABLED = true
+-- Noclip_ENABLED = true
