@@ -87,6 +87,79 @@ createButton("🔍 ESP", 40, function()
     end
 end)
 
+-- Região base para contagem de tempo (ajuste o nome conforme o seu jogo)
+local baseRegionPart = workspace:FindFirstChild("Base")
+
+-- Tabela para armazenar o tempo de cada jogador dentro da base
+local baseTimes = {}
+
+-- Função para checar se um ponto está dentro da base
+local function isInBase(position)
+    if not baseRegionPart then return false end
+    local basePos = baseRegionPart.Position
+    local baseSize = baseRegionPart.Size / 2
+    return (position.X > basePos.X - baseSize.X and position.X < basePos.X + baseSize.X) and
+           (position.Y > basePos.Y - baseSize.Y and position.Y < basePos.Y + baseSize.Y) and
+           (position.Z > basePos.Z - baseSize.Z and position.Z < basePos.Z + baseSize.Z)
+end
+
+-- Atualiza o ESP com o tempo na base
+local function updateBaseTimeESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= localPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = player.Character.HumanoidRootPart
+            local inBase = isInBase(hrp.Position)
+            if not baseTimes[player] then baseTimes[player] = 0 end
+            if inBase then
+                baseTimes[player] = baseTimes[player] + 1 -- incrementa a cada segundo
+            else
+                baseTimes[player] = 0
+            end
+            
+            -- Cria ou atualiza o BillboardGui para mostrar tempo
+            local espGui = player.Character:FindFirstChild("BaseTimeESP")
+            if not espGui then
+                espGui = Instance.new("BillboardGui", player.Character)
+                espGui.Name = "BaseTimeESP"
+                espGui.Adornee = hrp
+                espGui.Size = UDim2.new(0, 100, 0, 40)
+                espGui.AlwaysOnTop = true
+
+                local label = Instance.new("TextLabel", espGui)
+                label.Size = UDim2.new(1, 0, 1, 0)
+                label.BackgroundTransparency = 1
+                label.TextColor3 = Color3.new(0, 1, 0)
+                label.Font = Enum.Font.GothamBold
+                label.TextScaled = true
+                label.Name = "TimeLabel"
+            end
+            local label = espGui:FindFirstChild("TimeLabel")
+            if label then
+                label.Text = string.format("Base: %ds", baseTimes[player])
+            end
+        end
+    end
+end
+
+-- Loop para atualizar a contagem a cada 1 segundo, só se ESP estiver ativo
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if ESP_ENABLED then
+            updateBaseTimeESP()
+        else
+            -- Se ESP desativado, limpa os baseTimes e remove Gui
+            for _, player in pairs(Players:GetPlayers()) do
+                if player.Character then
+                    local espGui = player.Character:FindFirstChild("BaseTimeESP")
+                    if espGui then espGui:Destroy() end
+                end
+            end
+            baseTimes = {}
+        end
+    end
+end)
+
 -- NOCLIP TOTAL SEM VOLTAR
 RunService.Stepped:Connect(function()
     if Noclip_ENABLED and localPlayer.Character then
