@@ -83,14 +83,17 @@ createButton("🔍 ESP", 40, function()
     end
 end)
 
--- NOCLIP
+-- NOCLIP REFORÇADO
 RunService.Stepped:Connect(function()
-    if Noclip_ENABLED and localPlayer.Character then
+    if Noclip_ENABLED and localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        localPlayer.Character:FindFirstChildOfClass("Humanoid").PlatformStand = true
         for _, part in pairs(localPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
             end
         end
+    elseif localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        localPlayer.Character:FindFirstChildOfClass("Humanoid").PlatformStand = false
     end
 end)
 
@@ -146,13 +149,17 @@ task.spawn(function()
     end
 end)
 
--- PULO INFINITO (ajustado)
+-- PULO INFINITO REAJUSTADO
+local canJump = true
 uis.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.Space or input.UserInputType == Enum.UserInputType.Touch then
+    if input.KeyCode == Enum.KeyCode.Space then
         local char = localPlayer.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            char.HumanoidRootPart.Velocity = Vector3.new(0, 50, 0)
+        if char and char:FindFirstChild("Humanoid") and canJump then
+            canJump = false
+            char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            wait(0.15)
+            canJump = true
         end
     end
 end)
