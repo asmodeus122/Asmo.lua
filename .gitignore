@@ -1,5 +1,9 @@
--- STEAL A BRAINROT SCRIPT GUI ✅ Mobile e PC
-local player = game.Players.LocalPlayer
+-- ✅ STEAL A BRAINROT - SCRIPT GUI FINAL
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local root = char:WaitForChild("HumanoidRootPart")
 local hum = char:WaitForChild("Humanoid")
@@ -9,121 +13,135 @@ local autoSteal = false
 local noclipOn = false
 local delaySteal = 1
 
--- 📦 ESP
+-- 🔍 ESP + Nome
 function highlightBrainrots()
-    for _, obj in pairs(workspace:GetChildren()) do
-        if obj:IsA("Model") and obj.Name:lower():find("brainrot") and not obj:FindFirstChild("Highlight") then
-            local h = Instance.new("Highlight", obj)
-            h.FillColor = Color3.new(1, 0, 0)
-            h.OutlineColor = Color3.new(1, 1, 1)
-            h.FillTransparency = 0.3
-        end
-    end
+	for _, obj in pairs(workspace:GetChildren()) do
+		if obj:IsA("Model") and obj.Name:lower():find("brainrot") and obj:FindFirstChild("HumanoidRootPart") and not obj:FindFirstChild("Highlight") then
+			local hl = Instance.new("Highlight", obj)
+			hl.FillColor = Color3.new(1, 0, 0)
+			hl.OutlineColor = Color3.new(1, 1, 1)
+			hl.FillTransparency = 0.3
+
+			local billboard = Instance.new("BillboardGui", obj)
+			billboard.Name = "ESPName"
+			billboard.Size = UDim2.new(0, 100, 0, 20)
+			billboard.Adornee = obj:FindFirstChild("HumanoidRootPart")
+			billboard.AlwaysOnTop = true
+
+			local label = Instance.new("TextLabel", billboard)
+			label.Size = UDim2.new(1, 0, 1, 0)
+			label.BackgroundTransparency = 1
+			label.TextColor3 = Color3.new(1, 0, 0)
+			label.Text = obj.Name
+			label.TextScaled = true
+			label.Font = Enum.Font.GothamBold
+		end
+	end
 end
 
--- 🧱 Noclip
-game:GetService("RunService").Stepped:Connect(function()
-    if noclipOn then
-        for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
-        end
-    end
+-- 🧱 Noclip Estável
+RunService.Stepped:Connect(function()
+	if noclipOn and char and char:FindFirstChild("HumanoidRootPart") then
+		for _, part in pairs(char:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.CanCollide = false
+			end
+		end
+	end
 end)
 
--- 🚀 Brainrot mais próximo
+-- 🔍 Encontrar brainrot mais próximo
 function getClosestBrainrot()
-    local closest, dist = nil, math.huge
-    for _, obj in pairs(workspace:GetChildren()) do
-        if obj:IsA("Model") and obj.Name:lower():find("brainrot") and obj:FindFirstChild("HumanoidRootPart") then
-            local d = (obj.HumanoidRootPart.Position - root.Position).Magnitude
-            if d < dist then
-                closest = obj
-                dist = d
-            end
-        end
-    end
-    return closest
+	local closest, dist = nil, math.huge
+	for _, obj in pairs(workspace:GetChildren()) do
+		if obj:IsA("Model") and obj.Name:lower():find("brainrot") and obj:FindFirstChild("HumanoidRootPart") then
+			local d = (obj.HumanoidRootPart.Position - root.Position).Magnitude
+			if d < dist then
+				closest = obj
+				dist = d
+			end
+		end
+	end
+	return closest
 end
 
--- 🚀 Auto Teleport
+-- 🚀 Auto TP
 task.spawn(function()
-    while true do
-        task.wait(0.1)
-        if autoTP then
-            local target = getClosestBrainrot()
-            if target then
-                root.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
-            end
-        end
-    end
+	while true do
+		task.wait(0.2)
+		if autoTP then
+			local target = getClosestBrainrot()
+			if target then
+				local hrp = target:FindFirstChild("HumanoidRootPart")
+				if hrp then
+					root.CFrame = hrp.CFrame * CFrame.new(0, 3, -3)
+				end
+			end
+		end
+	end
 end)
 
--- 🏃‍♂️ Auto Steal
+-- 🤖 Auto Steal
 task.spawn(function()
-    while true do
-        if autoSteal then
-            local target = getClosestBrainrot()
-            if target then
-                local prompt = target:FindFirstChildWhichIsA("ProximityPrompt", true)
-                if prompt then
-                    fireproximityprompt(prompt)
-                end
-            end
-            task.wait(delaySteal)
-        else
-            task.wait(0.5)
-        end
-    end
+	while true do
+		if autoSteal then
+			local target = getClosestBrainrot()
+			if target then
+				local prompt = target:FindFirstChildWhichIsA("ProximityPrompt", true)
+				if prompt then
+					fireproximityprompt(prompt)
+				end
+			end
+			task.wait(delaySteal)
+		else
+			task.wait(0.5)
+		end
+	end
 end)
 
--- 📱 GUI Touch
+-- 📱 GUI
 local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.ResetOnSpawn = false
 
 function createButton(text, pos, callback)
-    local btn = Instance.new("TextButton", gui)
-    btn.Size = UDim2.new(0, 150, 0, 40)
-    btn.Position = pos
-    btn.Text = text
-    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.BorderSizePixel = 0
-    btn.TextSize = 14
-    btn.Font = Enum.Font.GothamBold
-    btn.AutoButtonColor = true
-    btn.BackgroundTransparency = 0.1
-    btn.Draggable = true
-    btn.MouseButton1Click:Connect(callback)
+	local btn = Instance.new("TextButton", gui)
+	btn.Size = UDim2.new(0, 160, 0, 40)
+	btn.Position = pos
+	btn.Text = text
+	btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.TextSize = 14
+	btn.Font = Enum.Font.GothamBold
+	btn.BorderSizePixel = 0
+	btn.Draggable = true
+	btn.MouseButton1Click:Connect(callback)
 end
 
--- Botões
-createButton("🔍 ESP Brainrots", UDim2.new(0, 20, 0, 100), function()
-    highlightBrainrots()
+createButton("🔍 Marcar Brainrots", UDim2.new(0, 10, 0, 100), function()
+	highlightBrainrots()
 end)
 
-createButton("🧱 Noclip (Toggle)", UDim2.new(0, 20, 0, 150), function()
-    noclipOn = not noclipOn
+createButton("🧱 Ativar Noclip", UDim2.new(0, 10, 0, 150), function()
+	noclipOn = not noclipOn
 end)
 
-createButton("🚀 Auto Teleport", UDim2.new(0, 20, 0, 200), function()
-    autoTP = not autoTP
+createButton("🚀 Auto Teleport", UDim2.new(0, 10, 0, 200), function()
+	autoTP = not autoTP
 end)
 
-createButton("🏃‍♂️ Auto Steal", UDim2.new(0, 20, 0, 250), function()
-    autoSteal = not autoSteal
+createButton("🏃 Auto Steal", UDim2.new(0, 10, 0, 250), function()
+	autoSteal = not autoSteal
 end)
 
-createButton("⏱️ Aumentar Delay", UDim2.new(0, 180, 0, 200), function()
-    delaySteal = delaySteal + 0.5
+createButton("⏱️ Delay +", UDim2.new(0, 180, 0, 200), function()
+	delaySteal = delaySteal + 0.5
 end)
 
-createButton("⏱️ Diminuir Delay", UDim2.new(0, 180, 0, 250), function()
-    delaySteal = math.max(0.1, delaySteal - 0.5)
+createButton("⏱️ Delay -", UDim2.new(0, 180, 0, 250), function()
+	delaySteal = math.max(0.2, delaySteal - 0.5)
 end)
 
--- Pulo Infinito
-game:GetService("UserInputService").JumpRequest:Connect(function()
-    if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+-- ⛓️ PULO INFINITO (Ativado automaticamente)
+UserInputService.JumpRequest:Connect(function()
+	if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
 end)
