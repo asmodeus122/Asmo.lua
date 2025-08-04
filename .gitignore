@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local PhysicsService = game:GetService("PhysicsService")
 
 local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
@@ -13,22 +14,46 @@ local autoSteal = false
 local noclipOn = false
 local delaySteal = 1
 
--- 🧱 Noclip Suave (evita voltar pra trás)
+-- Criar grupo de colisão 'NoCollide' se não existir
+pcall(function()
+	if not PhysicsService:CollisionGroupExists("NoCollide") then
+		PhysicsService:CreateCollisionGroup("NoCollide")
+		PhysicsService:CollisionGroupSetCollidable("NoCollide", "Default", false)
+	end
+end)
+
+-- 🧱 Noclip Suave com CollisionGroups para evitar empurrões
 RunService.Stepped:Connect(function()
 	if noclipOn and char and char:FindFirstChild("HumanoidRootPart") then
 		for _, part in pairs(char:GetDescendants()) do
-			if part:IsA("BasePart") and part.CanCollide == true then
+			if part:IsA("BasePart") then
 				part.CanCollide = false
+				PhysicsService:SetPartCollisionGroup(part, "NoCollide")
 			end
 		end
 	end
 end)
 
--- 🦘 Infinite Jump com tempo de pulo normal
-UserInputService.JumpRequest:Connect(function()
-	if hum:GetState() == Enum.HumanoidStateType.Freefall or hum:GetState() == Enum.HumanoidStateType.Running then
-		hum:ChangeState(Enum.HumanoidStateType.Jumping)
+-- 🦘 Infinite Jump Suave (seguro, sem morte)
+local function setupJump()
+	local function jump()
+		local char = player.Character
+		if char and char:FindFirstChild("Humanoid") then
+			local hum = char:FindFirstChild("Humanoid")
+			if hum:GetState() == Enum.HumanoidStateType.Freefall or hum:GetState() == Enum.HumanoidStateType.Jumping then
+				hum:ChangeState(Enum.HumanoidStateType.Jumping)
+			end
+		end
 	end
+	UserInputService.JumpRequest:Connect(jump)
+end
+
+if player.Character then
+	setupJump()
+end
+
+player.CharacterAdded:Connect(function()
+	setupJump()
 end)
 
 -- 🔍 ESP com nome
