@@ -1,4 +1,3 @@
--- ✅ STEAL A BRAINROT - SCRIPT FINAL COM AJUSTES
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -22,7 +21,7 @@ pcall(function()
 	end
 end)
 
--- 🧱 Noclip Suave com CollisionGroups para evitar empurrões
+-- Noclip com CollisionGroups
 RunService.Stepped:Connect(function()
 	if noclipOn and char and char:FindFirstChild("HumanoidRootPart") then
 		for _, part in pairs(char:GetDescendants()) do
@@ -34,29 +33,34 @@ RunService.Stepped:Connect(function()
 	end
 end)
 
--- 🦘 Infinite Jump Suave (seguro, sem morte)
-local function setupJump()
-	local function jump()
-		local char = player.Character
-		if char and char:FindFirstChild("Humanoid") then
-			local hum = char:FindFirstChild("Humanoid")
-			if hum:GetState() == Enum.HumanoidStateType.Freefall or hum:GetState() == Enum.HumanoidStateType.Jumping then
+-- Pulo infinito melhorado
+local maxExtraJumps = 3
+local extraJumps = 0
+local jumpCooldown = 0.4
+local lastJumpTime = 0
+
+local function canJump()
+	return (tick() - lastJumpTime) >= jumpCooldown
+end
+
+UserInputService.JumpRequest:Connect(function()
+	local char = player.Character
+	if char and char:FindFirstChild("Humanoid") then
+		local hum = char.Humanoid
+		local state = hum:GetState()
+		if state == Enum.HumanoidStateType.Freefall or state == Enum.HumanoidStateType.Jumping or state == Enum.HumanoidStateType.Landed then
+			if canJump() and extraJumps < maxExtraJumps then
 				hum:ChangeState(Enum.HumanoidStateType.Jumping)
+				extraJumps += 1
+				lastJumpTime = tick()
 			end
+		elseif state == Enum.HumanoidStateType.Running or state == Enum.HumanoidStateType.Landed then
+			extraJumps = 0
 		end
 	end
-	UserInputService.JumpRequest:Connect(jump)
-end
-
-if player.Character then
-	setupJump()
-end
-
-player.CharacterAdded:Connect(function()
-	setupJump()
 end)
 
--- 🔍 ESP com nome
+-- ESP
 function highlightBrainrots()
 	for _, obj in pairs(workspace:GetChildren()) do
 		if obj:IsA("Model") and obj.Name:lower():find("brainrot") and obj:FindFirstChild("HumanoidRootPart") and not obj:FindFirstChild("Highlight") then
@@ -82,7 +86,7 @@ function highlightBrainrots()
 	end
 end
 
--- 🔍 Buscar brainrot mais próximo
+-- Buscar brainrot mais próximo
 function getClosestBrainrot()
 	local closest, dist = nil, math.huge
 	for _, obj in pairs(workspace:GetChildren()) do
@@ -97,7 +101,7 @@ function getClosestBrainrot()
 	return closest
 end
 
--- 🚀 Auto TP
+-- Auto TP
 task.spawn(function()
 	while true do
 		task.wait(0.2)
@@ -113,7 +117,7 @@ task.spawn(function()
 	end
 end)
 
--- 🤖 Auto Steal
+-- Auto Steal
 task.spawn(function()
 	while true do
 		if autoSteal then
@@ -131,44 +135,95 @@ task.spawn(function()
 	end
 end)
 
--- 📱 GUI
-local gui = Instance.new("ScreenGui", game.CoreGui)
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "StealBrainrotMenu"
 gui.ResetOnSpawn = false
+gui.Parent = game.CoreGui
 
-function createButton(text, pos, callback)
-	local btn = Instance.new("TextButton", gui)
-	btn.Size = UDim2.new(0, 160, 0, 40)
-	btn.Position = pos
-	btn.Text = text
-	btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.TextSize = 14
-	btn.Font = Enum.Font.GothamBold
+local menuFrame = Instance.new("Frame", gui)
+menuFrame.Size = UDim2.new(0, 220, 0, 320)
+menuFrame.Position = UDim2.new(0, 10, 0, 100)
+menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+menuFrame.BackgroundTransparency = 0.15
+menuFrame.BorderSizePixel = 0
+menuFrame.ClipsDescendants = true
+menuFrame.Active = true
+menuFrame.Draggable = true
+
+local title = Instance.new("TextLabel", menuFrame)
+title.Size = UDim2.new(1, 0, 0, 50)
+title.BackgroundTransparency = 1
+title.Text = "Steal Brainrot Menu"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+title.TextColor3 = Color3.new(1, 1, 1)
+
+local function createToggleButton(text, yPos, getState, toggleFunc)
+	local btn = Instance.new("TextButton", menuFrame)
+	btn.Size = UDim2.new(0, 200, 0, 35)
+	btn.Position = UDim2.new(0, 10, 0, yPos)
+	btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 	btn.BorderSizePixel = 0
-	btn.Draggable = true
-	btn.MouseButton1Click:Connect(callback)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 16
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.Text = text .. " : OFF"
+	btn.AutoButtonColor = false
+
+	local function updateButton()
+		if getState() then
+			btn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+			btn.Text = text .. " : ON"
+		else
+			btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+			btn.Text = text .. " : OFF"
+		end
+	end
+
+	btn.MouseEnter:Connect(function()
+		btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+	end)
+	btn.MouseLeave:Connect(function()
+		updateButton()
+	end)
+
+	btn.MouseButton1Click:Connect(function()
+		toggleFunc()
+		updateButton()
+	end)
+
+	updateButton()
+	return btn
 end
 
-createButton("🔍 Marcar Brainrots", UDim2.new(0, 10, 0, 100), function()
-	highlightBrainrots()
-end)
+local espBtn = createToggleButton("ESP Brainrots", 60, 
+	function() return _G.espActive end, 
+	function() 
+		_G.espActive = not _G.espActive 
+		if _G.espActive then
+			highlightBrainrots()
+		else
+			-- Remover Highlights e ESPName
+			for _, obj in pairs(workspace:GetChildren()) do
+				if obj:IsA("Model") and obj.Name:lower():find("brainrot") then
+					local hl = obj:FindFirstChild("Highlight")
+					if hl then hl:Destroy() end
+					local espName = obj:FindFirstChild("ESPName")
+					if espName then espName:Destroy() end
+				end
+			end
+		end
+	end)
 
-createButton("🧱 Ativar Noclip", UDim2.new(0, 10, 0, 150), function()
-	noclipOn = not noclipOn
-end)
+local noclipBtn = createToggleButton("Noclip", 105, 
+	function() return noclipOn end, 
+	function() noclipOn = not noclipOn end)
 
-createButton("🚀 Auto Teleport", UDim2.new(0, 10, 0, 200), function()
-	autoTP = not autoTP
-end)
+local autoTpBtn = createToggleButton("Auto Teleport", 150, 
+	function() return autoTP end, 
+	function() autoTP = not autoTP end)
 
-createButton("🏃 Auto Steal", UDim2.new(0, 10, 0, 250), function()
-	autoSteal = not autoSteal
-end)
-
-createButton("⏱️ Delay +", UDim2.new(0, 180, 0, 200), function()
-	delaySteal = delaySteal + 0.5
-end)
-
-createButton("⏱️ Delay -", UDim2.new(0, 180, 0, 250), function()
-	delaySteal = math.max(0.2, delaySteal - 0.5)
-end)
+local autoStealBtn = createToggleButton("Auto Steal", 195, 
+	function() return autoSteal end, 
+	function() autoSteal = not autoS
