@@ -1,9 +1,10 @@
--- STEAL A BRAINROT - SCRIPT COMPLETO COM MOD MENU BONITO
+-- STEAL A BRAINROT - SCRIPT COMPLETO COMPATÍVEL COM DELTA
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local PhysicsService = game:GetService("PhysicsService")
+local CoreGui = game:GetService("CoreGui")
 
 local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
@@ -97,9 +98,9 @@ function highlightBrainrots()
 end
 
 -- Rodar o ESP a cada 2 segundos para manter atualizado
-task.spawn(function()
+spawn(function()
 	while true do
-		task.wait(2)
+		wait(2)
 		highlightBrainrots()
 	end
 end)
@@ -119,10 +120,10 @@ function getClosestBrainrot()
 	return closest
 end
 
--- Auto TP
-task.spawn(function()
+-- Auto TP compatível Delta
+spawn(function()
 	while true do
-		task.wait(0.2)
+		wait(0.2)
 		if autoTP then
 			local target = getClosestBrainrot()
 			if target then
@@ -135,20 +136,22 @@ task.spawn(function()
 	end
 end)
 
--- Auto Steal
-task.spawn(function()
+-- Auto Steal compatível Delta
+spawn(function()
 	while true do
 		if autoSteal then
 			local target = getClosestBrainrot()
 			if target then
 				local prompt = target:FindFirstChildWhichIsA("ProximityPrompt", true)
-				if prompt then
-					fireproximityprompt(prompt)
+				if prompt and prompt.Enabled then
+					prompt:InputHoldBegin()
+					wait(0.1)
+					prompt:InputHoldEnd()
 				end
 			end
-			task.wait(delaySteal)
+			wait(delaySteal)
 		else
-			task.wait(0.5)
+			wait(0.5)
 		end
 	end
 end)
@@ -157,7 +160,7 @@ end)
 local gui = Instance.new("ScreenGui")
 gui.Name = "StealBrainrotMenu"
 gui.ResetOnSpawn = false
-gui.Parent = game.CoreGui
+gui.Parent = CoreGui
 
 local menuFrame = Instance.new("Frame", gui)
 menuFrame.Size = UDim2.new(0, 220, 0, 320)
