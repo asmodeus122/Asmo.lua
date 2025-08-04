@@ -1,41 +1,111 @@
-# Compiled Lua sources
-luac.out
+local function main()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:WaitForChild("Humanoid")
+    local uis = game:GetService("UserInputService")
 
-# luarocks build files
-*.src.rock
-*.zip
-*.tar.gz
+    -- Cria ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "SpeedHubX"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = player:WaitForChild("PlayerGui")
 
-# Object files
-*.o
-*.os
-*.ko
-*.obj
-*.elf
+    -- Cria frame principal
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 220, 0, 260)
+    frame.Position = UDim2.new(0, 10, 0, 10)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    frame.BorderSizePixel = 0
+    frame.Parent = screenGui
 
-# Precompiled Headers
-*.gch
-*.pch
+    -- Função auxiliar para criar botões
+    local function createButton(text, posY, callback)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, -20, 0, 50)
+        btn.Position = UDim2.new(0, 10, 0, posY)
+        btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        btn.TextColor3 = Color3.new(1, 1, 1)
+        btn.Font = Enum.Font.SourceSansBold
+        btn.TextSize = 20
+        btn.Text = text
+        btn.Parent = frame
+        btn.AutoButtonColor = true
+        btn.MouseButton1Click:Connect(callback)
+        return btn
+    end
 
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-*.def
-*.exp
+    -- Poderes
 
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
+    local function ghostMode(duration)
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+                part.Transparency = 0.5
+            end
+        end
+        wait(duration)
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+                part.Transparency = 0
+            end
+        end
+    end
 
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
+    local function dash()
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local direction = hrp.CFrame.LookVector
+            hrp.Velocity = Vector3.new(0, hrp.Velocity.Y, 0) + direction * 100
+        end
+    end
 
+    local function speedBoost(duration)
+        local oldSpeed = humanoid.WalkSpeed
+        humanoid.WalkSpeed = 50
+        wait(duration)
+        humanoid.WalkSpeed = oldSpeed
+    end
+
+    local doubleJumpEnabled = false
+    local jumps = 0
+    local maxJumps = 2
+    local function enableDoubleJump()
+        if doubleJumpEnabled then return end
+        doubleJumpEnabled = true
+
+        humanoid.Jumping:Connect(function(active)
+            if active then
+                jumps = jumps + 1
+                if jumps > maxJumps then
+                    humanoid.Jump = false
+                end
+            end
+        end)
+
+        humanoid.StateChanged:Connect(function(old,new)
+            if new == Enum.HumanoidStateType.Landed then
+                jumps = 0
+            end
+        end)
+    end
+
+    -- Botões
+    createButton("Fantasma (5s)", 10, function()
+        ghostMode(5)
+    end)
+
+    createButton("Dash", 70, function()
+        dash()
+    end)
+
+    createButton("Speed Boost (5s)", 130, function()
+        speedBoost(5)
+    end)
+
+    createButton("Pulo Duplo", 190, function()
+        enableDoubleJump()
+    end)
+end
+
+main()
