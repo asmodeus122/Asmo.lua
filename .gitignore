@@ -10,14 +10,17 @@ local ESP_ENABLED = false
 local Noclip_ENABLED = false
 local Teleport_ENABLED = false
 local Steal_ENABLED = false
+local InfiniteJump_ENABLED = true
+local Godmode_ENABLED = false
+local SpeedBoost_ENABLED = false
 
 -- GUI
 local gui = Instance.new("ScreenGui", localPlayer:WaitForChild("PlayerGui"))
 gui.ResetOnSpawn = false
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 160, 0, 280)
-frame.Position = UDim2.new(0, 10, 0.5, -140)
+frame.Size = UDim2.new(0, 160, 0, 410)
+frame.Position = UDim2.new(0, 10, 0.5, -205)
 frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 frame.BorderSizePixel = 0
 frame.Parent = gui
@@ -84,14 +87,13 @@ createButton("🔍 ESP", 40, function()
     end
 end)
 
--- NOCLIP REFORÇADO SEM PLATFORMSTAND
+-- NOCLIP CORRIGIDO
 RunService.Stepped:Connect(function()
     if Noclip_ENABLED and localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid") then
         for _, part in pairs(localPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
-                part.Velocity = Vector3.new(0, 0, 0)
-                part.RotVelocity = Vector3.new(0, 0, 0)
+                part.Anchored = false
             end
         end
     elseif localPlayer.Character then
@@ -155,12 +157,46 @@ task.spawn(function()
     end
 end)
 
--- PULO INFINITO CORRIGIDO (COMPATÍVEL COM MOBILE)
+-- PULO INFINITO CORRIGIDO
 ContextActionService:BindAction("InfiniteJump", function(_, inputState)
-    if inputState == Enum.UserInputState.Begin then
+    if inputState == Enum.UserInputState.Begin and InfiniteJump_ENABLED then
         local char = localPlayer.Character
         if char and char:FindFirstChild("Humanoid") then
             char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
         end
     end
-end, false, Enum.KeyCode.Space, Enum.UserInputType.Touch)
+end, false, Enum.KeyCode.Space)
+
+-- Botão para pulo no mobile
+local jumpButton = createButton("🏊 Pular", 240, function()
+    if InfiniteJump_ENABLED then
+        local char = localPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end)
+
+-- GODMODE
+createButton("🛡 Godmode", 290, function()
+    Godmode_ENABLED = not Godmode_ENABLED
+    local char = localPlayer.Character
+    if Godmode_ENABLED and char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.Name = "1"
+        local newHumanoid = char.Humanoid:Clone()
+        newHumanoid.Parent = char
+        newHumanoid.Name = "Humanoid"
+        task.wait(0.1)
+        char:FindFirstChild("1"):Destroy()
+        workspace.CurrentCamera.CameraSubject = newHumanoid
+    end
+end)
+
+-- SPEED BOOST
+createButton("⚡ Speed Boost", 340, function()
+    SpeedBoost_ENABLED = not SpeedBoost_ENABLED
+    local char = localPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.WalkSpeed = SpeedBoost_ENABLED and 100 or 16
+    end
+end)
