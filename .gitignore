@@ -13,14 +13,17 @@ local Steal_ENABLED = false
 local InfiniteJump_ENABLED = true
 local Godmode_ENABLED = false
 local SpeedBoost_ENABLED = false
+local Fly_ENABLED = false
+local flying = false
+local flySpeed = 100
 
 -- GUI
 local gui = Instance.new("ScreenGui", localPlayer:WaitForChild("PlayerGui"))
 gui.ResetOnSpawn = false
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 160, 0, 410)
-frame.Position = UDim2.new(0, 10, 0.5, -205)
+frame.Size = UDim2.new(0, 160, 0, 450)
+frame.Position = UDim2.new(0, 10, 0.5, -225)
 frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 frame.BorderSizePixel = 0
 frame.Parent = gui
@@ -87,110 +90,78 @@ createButton("🔍 ESP", 40, function()
     end
 end)
 
--- Região base para contagem de tempo (ajuste o nome conforme o seu jogo)
-local baseRegionPart = workspace:FindFirstChild("Base")
-
--- Tabela para armazenar o tempo de cada jogador dentro da base
-local baseTimes = {}
-
--- Função para checar se um ponto está dentro da base
-local function isInBase(position)
-    if not baseRegionPart then return false end
-    local basePos = baseRegionPart.Position
-    local baseSize = baseRegionPart.Size / 2
-    return (position.X > basePos.X - baseSize.X and position.X < basePos.X + baseSize.X) and
-           (position.Y > basePos.Y - baseSize.Y and position.Y < basePos.Y + baseSize.Y) and
-           (position.Z > basePos.Z - baseSize.Z and position.Z < basePos.Z + baseSize.Z)
-end
-
--- Atualiza o ESP com o tempo na base
-local function updateBaseTimeESP()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= localPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = player.Character.HumanoidRootPart
-            local inBase = isInBase(hrp.Position)
-            if not baseTimes[player] then baseTimes[player] = 0 end
-            if inBase then
-                baseTimes[player] = baseTimes[player] + 1 -- incrementa a cada segundo
-            else
-                baseTimes[player] = 0
-            end
-            
-            -- Cria ou atualiza o BillboardGui para mostrar tempo
-            local espGui = player.Character:FindFirstChild("BaseTimeESP")
-            if not espGui then
-                espGui = Instance.new("BillboardGui", player.Character)
-                espGui.Name = "BaseTimeESP"
-                espGui.Adornee = hrp
-                espGui.Size = UDim2.new(0, 150, 0, 60) -- maior tamanho da caixa
-                espGui.AlwaysOnTop = true
-
-                local label = Instance.new("TextLabel", espGui)
-                label.Size = UDim2.new(1, 0, 1, 0)
-                label.BackgroundTransparency = 0.3
-                label.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-                label.TextColor3 = Color3.fromRGB(0, 255, 0)
-                label.Font = Enum.Font.GothamBold
-                label.TextScaled = false
-                label.TextSize = 30 -- fonte maior
-                label.Name = "TimeLabel"
-                label.TextStrokeTransparency = 0
-                label.TextStrokeColor3 = Color3.new(0,0,0)
-                label.BorderSizePixel = 0
-            end
-            local label = espGui:FindFirstChild("TimeLabel")
-            if label then
-                label.Text = string.format("Base: %ds", baseTimes[player])
-            end
-        end
-    end
-end
-
--- Loop para atualizar a contagem a cada 1 segundo, só se ESP estiver ativo
-task.spawn(function()
-    while true do
-        task.wait(1)
-        if ESP_ENABLED then
-            updateBaseTimeESP()
-        else
-            -- Se ESP desativado, limpa os baseTimes e remove Gui
-            for _, player in pairs(Players:GetPlayers()) do
-                if player.Character then
-                    local espGui = player.Character:FindFirstChild("BaseTimeESP")
-                    if espGui then espGui:Destroy() end
-                end
-            end
-            baseTimes = {}
-        end
-    end
-end)
-
--- NOCLIP ESTÁVEL COM CORREÇÃO PARA NÃO CAIR ABAIXO DA TERRA
+-- NOCLIP TOTAL SEM VOLTAR
 RunService.Stepped:Connect(function()
     if Noclip_ENABLED and localPlayer.Character then
-        local char = localPlayer.Character
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        for _, part in ipairs(char:GetDescendants()) do
+        for _, part in ipairs(localPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
                 part.Anchored = false
             end
         end
-
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if humanoid and hrp then
-            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-            -- Mantém o personagem ligeiramente elevado para não cair
-            local pos = hrp.Position
-            if pos.Y < workspace.FallenPartsDestroyHeight + 5 then
-                hrp.CFrame = CFrame.new(pos.X, workspace.FallenPartsDestroyHeight + 10, pos.Z)
-            end
+        local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+        local root = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if root and root.Position.Y < -50 then
+            root.CFrame = CFrame.new(root.Position.X, 50, root.Position.Z)
         end
     end
 end)
 
-createButton("🧱 Noclip", 90, function()
+createButton("🤍 Noclip", 90, function()
     Noclip_ENABLED = not Noclip_ENABLED
+end)
+
+-- FLY MODE
+local function startFly()
+    local char = localPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    flying = true
+    local bg = Instance.new("BodyGyro", root)
+    local bv = Instance.new("BodyVelocity", root)
+    bg.P = 9e4
+    bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+    bg.cframe = root.CFrame
+    bv.velocity = Vector3.new(0, 0, 0)
+    bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+
+    RunService.Stepped:Connect(function()
+        if not flying then return end
+        bg.cframe = workspace.CurrentCamera.CFrame
+        local moveDir = Vector3.zero
+        if uis:IsKeyDown(Enum.KeyCode.W) then moveDir += workspace.CurrentCamera.CFrame.LookVector end
+        if uis:IsKeyDown(Enum.KeyCode.S) then moveDir -= workspace.CurrentCamera.CFrame.LookVector end
+        if uis:IsKeyDown(Enum.KeyCode.D) then moveDir += workspace.CurrentCamera.CFrame.RightVector end
+        if uis:IsKeyDown(Enum.KeyCode.A) then moveDir -= workspace.CurrentCamera.CFrame.RightVector end
+        if uis:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0, 1, 0) end
+        if uis:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir -= Vector3.new(0, 1, 0) end
+        bv.velocity = moveDir.Magnitude > 0 and moveDir.Unit * flySpeed or Vector3.zero
+    end)
+end
+
+local function stopFly()
+    flying = false
+    local root = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if root then
+        for _, v in pairs(root:GetChildren()) do
+            if v:IsA("BodyVelocity") or v:IsA("BodyGyro") then
+                v:Destroy()
+            end
+        end
+    end
+end
+
+createButton("🚀 Fly Mode", 140, function()
+    Fly_ENABLED = not Fly_ENABLED
+    if Fly_ENABLED then
+        startFly()
+    else
+        stopFly()
+    end
 end)
 
 -- AUTO TELEPORT
@@ -208,7 +179,7 @@ function getClosestBrainrot()
     return closest
 end
 
-createButton("🚀 Auto TP", 140, function()
+createButton("🚀 Auto TP", 190, function()
     Teleport_ENABLED = not Teleport_ENABLED
 end)
 
@@ -225,7 +196,7 @@ task.spawn(function()
 end)
 
 -- AUTO STEAL
-createButton("🏃‍♂️ Auto Steal", 190, function()
+createButton("🏃‍♂️ Auto Steal", 240, function()
     Steal_ENABLED = not Steal_ENABLED
 end)
 
@@ -241,20 +212,18 @@ task.spawn(function()
     end
 end)
 
--- PULO INFINITO (TECLADO SOMENTE)
+-- PULO INFINITO FUNCIONAL SEM TOQUE NA TELA
 uis.InputBegan:Connect(function(input, gp)
     if InfiniteJump_ENABLED and input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.Space then
         local char = localPlayer.Character
-        if char then
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            end
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
         end
     end
 end)
 
-local jumpButton = createButton("🏊 Pular", 240, function()
+-- BOTÃO EXTRA DE PULO
+createButton("🏊 Pular", 290, function()
     local char = localPlayer.Character
     if char and char:FindFirstChild("Humanoid") then
         char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
@@ -262,7 +231,7 @@ local jumpButton = createButton("🏊 Pular", 240, function()
 end)
 
 -- GODMODE COMPLETO
-createButton("🚡 Godmode", 290, function()
+createButton("🚡 Godmode", 340, function()
     Godmode_ENABLED = not Godmode_ENABLED
     local char = localPlayer.Character
     if Godmode_ENABLED and char and char:FindFirstChild("Humanoid") then
@@ -279,7 +248,7 @@ createButton("🚡 Godmode", 290, function()
 end)
 
 -- SPEED BOOST
-createButton("⚡ Speed Boost", 340, function()
+createButton("⚡ Speed Boost", 390, function()
     SpeedBoost_ENABLED = not SpeedBoost_ENABLED
     local char = localPlayer.Character
     if char and char:FindFirstChild("Humanoid") then
