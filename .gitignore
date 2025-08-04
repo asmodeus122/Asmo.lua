@@ -122,16 +122,21 @@ local function updateBaseTimeESP()
                 espGui = Instance.new("BillboardGui", player.Character)
                 espGui.Name = "BaseTimeESP"
                 espGui.Adornee = hrp
-                espGui.Size = UDim2.new(0, 100, 0, 40)
+                espGui.Size = UDim2.new(0, 150, 0, 60) -- maior tamanho da caixa
                 espGui.AlwaysOnTop = true
 
                 local label = Instance.new("TextLabel", espGui)
                 label.Size = UDim2.new(1, 0, 1, 0)
-                label.BackgroundTransparency = 1
-                label.TextColor3 = Color3.new(0, 1, 0)
+                label.BackgroundTransparency = 0.3
+                label.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                label.TextColor3 = Color3.fromRGB(0, 255, 0)
                 label.Font = Enum.Font.GothamBold
-                label.TextScaled = true
+                label.TextScaled = false
+                label.TextSize = 30 -- fonte maior
                 label.Name = "TimeLabel"
+                label.TextStrokeTransparency = 0
+                label.TextStrokeColor3 = Color3.new(0,0,0)
+                label.BorderSizePixel = 0
             end
             local label = espGui:FindFirstChild("TimeLabel")
             if label then
@@ -241,10 +246,16 @@ end)
 
 RunService.Heartbeat:Connect(function()
     if InfiniteJump_ENABLED and localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid") then
-        localPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-        localPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-        localPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
-        localPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+        local humanoid = localPlayer.Character.Humanoid
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+
+        -- Proteção contra morte por queda
+        if humanoid.Health < humanoid.MaxHealth then
+            humanoid.Health = humanoid.MaxHealth
+        end
     end
 end)
 
