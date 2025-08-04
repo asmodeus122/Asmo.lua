@@ -1,4 +1,4 @@
--- ✅ STEAL A BRAINROT - SCRIPT GUI FINAL
+-- ✅ STEAL A BRAINROT - SCRIPT FINAL COM AJUSTES
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -13,7 +13,25 @@ local autoSteal = false
 local noclipOn = false
 local delaySteal = 1
 
--- 🔍 ESP + Nome
+-- 🧱 Noclip Suave (evita voltar pra trás)
+RunService.Stepped:Connect(function()
+	if noclipOn and char and char:FindFirstChild("HumanoidRootPart") then
+		for _, part in pairs(char:GetDescendants()) do
+			if part:IsA("BasePart") and part.CanCollide == true then
+				part.CanCollide = false
+			end
+		end
+	end
+end)
+
+-- 🦘 Infinite Jump com tempo de pulo normal
+UserInputService.JumpRequest:Connect(function()
+	if hum:GetState() == Enum.HumanoidStateType.Freefall or hum:GetState() == Enum.HumanoidStateType.Running then
+		hum:ChangeState(Enum.HumanoidStateType.Jumping)
+	end
+end)
+
+-- 🔍 ESP com nome
 function highlightBrainrots()
 	for _, obj in pairs(workspace:GetChildren()) do
 		if obj:IsA("Model") and obj.Name:lower():find("brainrot") and obj:FindFirstChild("HumanoidRootPart") and not obj:FindFirstChild("Highlight") then
@@ -39,18 +57,7 @@ function highlightBrainrots()
 	end
 end
 
--- 🧱 Noclip Estável
-RunService.Stepped:Connect(function()
-	if noclipOn and char and char:FindFirstChild("HumanoidRootPart") then
-		for _, part in pairs(char:GetDescendants()) do
-			if part:IsA("BasePart") then
-				part.CanCollide = false
-			end
-		end
-	end
-end)
-
--- 🔍 Encontrar brainrot mais próximo
+-- 🔍 Buscar brainrot mais próximo
 function getClosestBrainrot()
 	local closest, dist = nil, math.huge
 	for _, obj in pairs(workspace:GetChildren()) do
@@ -139,9 +146,4 @@ end)
 
 createButton("⏱️ Delay -", UDim2.new(0, 180, 0, 250), function()
 	delaySteal = math.max(0.2, delaySteal - 0.5)
-end)
-
--- ⛓️ PULO INFINITO (Ativado automaticamente)
-UserInputService.JumpRequest:Connect(function()
-	if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
 end)
