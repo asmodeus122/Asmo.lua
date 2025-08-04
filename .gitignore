@@ -1,116 +1,154 @@
--- STEAL A BRAINROT - SCRIPT COMPLETO COMPATÍVEL COM DELTA
+--[[
+Steal A Brainrot - Script Profissional
+Compatível PC e Mobile (Delta, Hydrogen, ArceusX)
+Modular, otimizado e comentado
+Autor: SeuNomeAqui
+]]
 
+-- Serviços usados
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local PhysicsService = game:GetService("PhysicsService")
 local CoreGui = game:GetService("CoreGui")
 
+-- Variáveis principais
 local player = Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local root = char:WaitForChild("HumanoidRootPart")
-local hum = char:WaitForChild("Humanoid")
+local character = player.Character or player.CharacterAdded:Wait()
+local rootPart = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
 
-local autoTP = false
-local autoSteal = false
-local noclipOn = false
-local delaySteal = 1
+-- Estado e configurações
+local config = {
+	AutoTeleport = false,
+	AutoSteal = false,
+	Noclip = false,
+	ESP = false,
+	StealDelay = 1.0,
+	MaxExtraJumps = 3,
+	JumpCooldown = 0.3,
+}
 
--- Criar grupo de colisão 'NoCollide' se não existir
-pcall(function()
-	if not PhysicsService:CollisionGroupExists("NoCollide") then
-		PhysicsService:CreateCollisionGroup("NoCollide")
-		PhysicsService:CollisionGroupSetCollidable("NoCollide", "Default", false)
+-- Variáveis internas
+local extraJumps = 0
+local lastJumpTick = 0
+
+-- Criar CollisionGroup para noclip se não existir
+local function setupCollisionGroup()
+	local success, err = pcall(function()
+		if not PhysicsService:CollisionGroupExists("NoCollide") then
+			PhysicsService:CreateCollisionGroup("NoCollide")
+			PhysicsService:CollisionGroupSetCollidable("NoCollide", "Default", false)
+		end
+	end)
+	if not success then
+		warn("Erro criando CollisionGroup: ", err)
 	end
-end)
+end
 
--- Noclip com CollisionGroups
-RunService.Stepped:Connect(function()
-	if noclipOn and char and char:FindFirstChild("HumanoidRootPart") then
-		for _, part in pairs(char:GetDescendants()) do
+setupCollisionGroup()
+
+-- Noclip usando CollisionGroup
+local function noclipHandler()
+	if config.Noclip and character and character.Parent then
+		for _, part in ipairs(character:GetDescendants()) do
 			if part:IsA("BasePart") then
 				part.CanCollide = false
 				PhysicsService:SetPartCollisionGroup(part, "NoCollide")
 			end
 		end
 	end
-end)
-
--- Pulo infinito melhorado
-local maxExtraJumps = 3
-local extraJumps = 0
-local jumpCooldown = 0.4
-local lastJumpTime = 0
-
-local function canJump()
-	return (tick() - lastJumpTime) >= jumpCooldown
 end
 
-UserInputService.JumpRequest:Connect(function()
-	local char = player.Character
-	if char and char:FindFirstChild("Humanoid") then
-		local hum = char.Humanoid
-		local state = hum:GetState()
-		if state == Enum.HumanoidStateType.Freefall or state == Enum.HumanoidStateType.Jumping or state == Enum.HumanoidStateType.Landed then
-			if canJump() and extraJumps < maxExtraJumps then
-				hum:ChangeState(Enum.HumanoidStateType.Jumping)
-				extraJumps += 1
-				lastJumpTime = tick()
-			end
-		elseif state == Enum.HumanoidStateType.Running or state == Enum.HumanoidStateType.Landed then
-			extraJumps = 0
+RunService.Stepped:Connect(noclipHandler)
+
+-- Pulo infinito com cooldown e limite de pulos extras
+local function onJumpRequest()
+	local now = tick()
+	if now - lastJumpTick < config.JumpCooldown then return end
+	lastJumpTick = now
+
+	local state = humanoid:GetState()
+	if state == Enum.HumanoidStateType.Freefall or state == Enum.HumanoidStateType.Jumping or state == Enum.HumanoidStateType.Landed then
+		if extraJumps < config.MaxExtraJumps then
+			humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+			extraJumps += 1
+		end
+	elseif state == Enum.HumanoidStateType.Running or state == Enum.HumanoidStateType.Landed then
+		extraJumps = 0
+	end
+end
+
+UserInputService.JumpRequest:Connect(onJumpRequest)
+
+-- Função para limpar Highlights e ESP antigos
+local function clearESP()
+	for _, obj in ipairs(workspace:GetChildren()) do
+		if obj:IsA("Model") then
+			local hl = obj:FindFirstChild("Highlight")
+			if hl then hl:Destroy() end
+			local billboard = obj:FindFirstChild("ESPName")
+			if billboard then billboard:Destroy() end
 		end
 	end
-end)
+end
 
--- ESP Brainrots
-local espActive = false
-function highlightBrainrots()
-	for _, obj in pairs(workspace:GetChildren()) do
+-- Função para destacar Brainrots (ESP)
+local function updateESP()
+	for _, obj in ipairs(workspace:GetChildren()) do
 		if obj:IsA("Model") and obj.Name:lower():find("brainrot") and obj:FindFirstChild("HumanoidRootPart") then
-			if espActive and not obj:FindFirstChild("Highlight") then
-				local hl = Instance.new("Highlight", obj)
-				hl.FillColor = Color3.new(1, 0, 0)
-				hl.OutlineColor = Color3.new(1, 1, 1)
-				hl.FillTransparency = 0.3
+			local hl = obj:FindFirstChild("Highlight")
+			local billboard = obj:FindFirstChild("ESPName")
+			if config.ESP then
+				if not hl then
+					hl = Instance.new("Highlight")
+					hl.Name = "Highlight"
+					hl.FillColor = Color3.new(1, 0, 0)
+					hl.OutlineColor = Color3.new(1, 1, 1)
+					hl.FillTransparency = 0.3
+					hl.Parent = obj
+				end
+				if not billboard then
+					billboard = Instance.new("BillboardGui")
+					billboard.Name = "ESPName"
+					billboard.Size = UDim2.new(0, 120, 0, 25)
+					billboard.Adornee = obj.HumanoidRootPart
+					billboard.AlwaysOnTop = true
+					billboard.Parent = obj
 
-				local billboard = Instance.new("BillboardGui", obj)
-				billboard.Name = "ESPName"
-				billboard.Size = UDim2.new(0, 100, 0, 20)
-				billboard.Adornee = obj:FindFirstChild("HumanoidRootPart")
-				billboard.AlwaysOnTop = true
-
-				local label = Instance.new("TextLabel", billboard)
-				label.Size = UDim2.new(1, 0, 1, 0)
-				label.BackgroundTransparency = 1
-				label.TextColor3 = Color3.new(1, 0, 0)
-				label.Text = obj.Name
-				label.TextScaled = true
-				label.Font = Enum.Font.GothamBold
-			elseif not espActive then
-				local hl = obj:FindFirstChild("Highlight")
+					local label = Instance.new("TextLabel")
+					label.Size = UDim2.new(1, 0, 1, 0)
+					label.BackgroundTransparency = 1
+					label.TextColor3 = Color3.new(1, 0, 0)
+					label.TextStrokeTransparency = 0
+					label.TextStrokeColor3 = Color3.new(0,0,0)
+					label.TextScaled = true
+					label.Font = Enum.Font.GothamBold
+					label.Text = obj.Name
+					label.Parent = billboard
+				end
+			else
 				if hl then hl:Destroy() end
-				local espName = obj:FindFirstChild("ESPName")
-				if espName then espName:Destroy() end
+				if billboard then billboard:Destroy() end
 			end
 		end
 	end
 end
 
--- Rodar o ESP a cada 2 segundos para manter atualizado
+-- Atualiza ESP a cada 2 segundos
 spawn(function()
 	while true do
 		wait(2)
-		highlightBrainrots()
+		updateESP()
 	end
 end)
 
--- Buscar brainrot mais próximo
-function getClosestBrainrot()
+-- Função para buscar brainrot mais próximo
+local function getClosestBrainrot()
 	local closest, dist = nil, math.huge
-	for _, obj in pairs(workspace:GetChildren()) do
+	for _, obj in ipairs(workspace:GetChildren()) do
 		if obj:IsA("Model") and obj.Name:lower():find("brainrot") and obj:FindFirstChild("HumanoidRootPart") then
-			local d = (obj.HumanoidRootPart.Position - root.Position).Magnitude
+			local d = (obj.HumanoidRootPart.Position - rootPart.Position).Magnitude
 			if d < dist then
 				closest = obj
 				dist = d
@@ -120,90 +158,68 @@ function getClosestBrainrot()
 	return closest
 end
 
--- Auto TP compatível Delta
+-- Auto Teleport com espera para estabilidade
 spawn(function()
 	while true do
-		wait(0.2)
-		if autoTP then
+		wait(0.15)
+		if config.AutoTeleport then
 			local target = getClosestBrainrot()
-			if target then
+			if target and target.Parent then
 				local hrp = target:FindFirstChild("HumanoidRootPart")
 				if hrp then
-					root.CFrame = hrp.CFrame * CFrame.new(0, 3, -3)
+					rootPart.CFrame = hrp.CFrame * CFrame.new(0, 3, -3)
 				end
 			end
 		end
 	end
 end)
 
--- Auto Steal compatível Delta
+-- Auto Steal com InputHoldBegin/End para compatibilidade máxima
 spawn(function()
 	while true do
-		if autoSteal then
+		if config.AutoSteal then
 			local target = getClosestBrainrot()
-			if target then
+			if target and target.Parent then
 				local prompt = target:FindFirstChildWhichIsA("ProximityPrompt", true)
 				if prompt and prompt.Enabled then
 					prompt:InputHoldBegin()
-					wait(0.1)
+					wait(0.15)
 					prompt:InputHoldEnd()
 				end
 			end
-			wait(delaySteal)
+			wait(config.StealDelay)
 		else
 			wait(0.5)
 		end
 	end
 end)
 
--- GUI
-local gui = Instance.new("ScreenGui")
-gui.Name = "StealBrainrotMenu"
-gui.ResetOnSpawn = false
-gui.Parent = CoreGui
+-- Criar GUI profissional e responsiva
 
-local menuFrame = Instance.new("Frame", gui)
-menuFrame.Size = UDim2.new(0, 220, 0, 320)
-menuFrame.Position = UDim2.new(0, 10, 0, 100)
-menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-menuFrame.BackgroundTransparency = 0.15
-menuFrame.BorderSizePixel = 0
-menuFrame.ClipsDescendants = true
-menuFrame.Active = true
-menuFrame.Draggable = true
-
-local title = Instance.new("TextLabel", menuFrame)
-title.Size = UDim2.new(1, 0, 0, 50)
-title.BackgroundTransparency = 1
-title.Text = "Steal Brainrot Menu"
-title.Font = Enum.Font.GothamBold
-title.TextSize = 20
-title.TextColor3 = Color3.new(1, 1, 1)
-
-local function createToggleButton(text, yPos, getState, toggleFunc)
-	local btn = Instance.new("TextButton", menuFrame)
-	btn.Size = UDim2.new(0, 200, 0, 35)
-	btn.Position = UDim2.new(0, 10, 0, yPos)
-	btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+local function createToggleButton(parent, text, yPos, getState, toggleFunc)
+	local btn = Instance.new("TextButton", parent)
+	btn.Size = UDim2.new(0, 210, 0, 40)
+	btn.Position = UDim2.new(0, 15, 0, yPos)
+	btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
 	btn.BorderSizePixel = 0
 	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 16
+	btn.TextSize = 17
 	btn.TextColor3 = Color3.new(1,1,1)
 	btn.Text = text .. " : OFF"
 	btn.AutoButtonColor = false
 
 	local function updateButton()
 		if getState() then
-			btn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+			btn.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
 			btn.Text = text .. " : ON"
 		else
-			btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+			btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
 			btn.Text = text .. " : OFF"
 		end
 	end
 
 	btn.MouseEnter:Connect(function()
-		btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+		btn.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
 	end)
 	btn.MouseLeave:Connect(function()
 		updateButton()
@@ -218,60 +234,82 @@ local function createToggleButton(text, yPos, getState, toggleFunc)
 	return btn
 end
 
-local espBtn = createToggleButton("ESP Brainrots", 60, 
-	function() return espActive end, 
-	function() 
-		espActive = not espActive 
-		highlightBrainrots()
-	end)
+local gui = Instance.new("ScreenGui")
+gui.Name = "StealBrainrotMenu"
+gui.ResetOnSpawn = false
+gui.Parent = CoreGui
 
-local noclipBtn = createToggleButton("Noclip", 105, 
-	function() return noclipOn end, 
-	function() noclipOn = not noclipOn end)
+local menuFrame = Instance.new("Frame", gui)
+menuFrame.Size = UDim2.new(0, 240, 0, 350)
+menuFrame.Position = UDim2.new(0, 15, 0, 120)
+menuFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+menuFrame.BackgroundTransparency = 0.15
+menuFrame.BorderSizePixel = 0
+menuFrame.ClipsDescendants = true
+menuFrame.Active = true
+menuFrame.Draggable = true
 
-local autoTpBtn = createToggleButton("Auto Teleport", 150, 
-	function() return autoTP end, 
-	function() autoTP = not autoTP end)
+local title = Instance.new("TextLabel", menuFrame)
+title.Size = UDim2.new(1, 0, 0, 50)
+title.BackgroundTransparency = 1
+title.Text = "Steal Brainrot Menu"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 22
+title.TextColor3 = Color3.fromRGB(255, 100, 100)
+title.TextStrokeTransparency = 0
+title.TextStrokeColor3 = Color3.new(0,0,0)
 
-local autoStealBtn = createToggleButton("Auto Steal", 195, 
-	function() return autoSteal end, 
-	function() autoSteal = not autoSteal end)
+local espBtn = createToggleButton(menuFrame, "ESP Brainrots", 70,
+	function() return config.ESP end,
+	function() config.ESP = not config.ESP updateESP() end)
+
+local noclipBtn = createToggleButton(menuFrame, "Noclip", 120,
+	function() return config.Noclip end,
+	function() config.Noclip = not config.Noclip end)
+
+local autoTpBtn = createToggleButton(menuFrame, "Auto Teleport", 170,
+	function() return config.AutoTeleport end,
+	function() config.AutoTeleport = not config.AutoTeleport end)
+
+local autoStealBtn = createToggleButton(menuFrame, "Auto Steal", 220,
+	function() return config.AutoSteal end,
+	function() config.AutoSteal = not config.AutoSteal end)
 
 local delayLabel = Instance.new("TextLabel", menuFrame)
-delayLabel.Size = UDim2.new(0, 200, 0, 30)
-delayLabel.Position = UDim2.new(0, 10, 0, 240)
+delayLabel.Size = UDim2.new(0, 210, 0, 35)
+delayLabel.Position = UDim2.new(0, 15, 0, 270)
 delayLabel.BackgroundTransparency = 1
 delayLabel.Font = Enum.Font.GothamBold
-delayLabel.TextSize = 16
-delayLabel.TextColor3 = Color3.new(1,1,1)
-delayLabel.Text = "Delay: " .. delaySteal .. "s"
+delayLabel.TextSize = 17
+delayLabel.TextColor3 = Color3.fromRGB(255,255,255)
+delayLabel.Text = "Delay: " .. string.format("%.1f", config.StealDelay) .. "s"
 
 local delayPlusBtn = Instance.new("TextButton", menuFrame)
-delayPlusBtn.Size = UDim2.new(0, 45, 0, 30)
-delayPlusBtn.Position = UDim2.new(0, 10, 0, 275)
+delayPlusBtn.Size = UDim2.new(0, 50, 0, 35)
+delayPlusBtn.Position = UDim2.new(0, 15, 0, 310)
 delayPlusBtn.Text = "+"
 delayPlusBtn.Font = Enum.Font.GothamBold
-delayPlusBtn.TextSize = 20
-delayPlusBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+delayPlusBtn.TextSize = 25
+delayPlusBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
 delayPlusBtn.TextColor3 = Color3.new(1,1,1)
 delayPlusBtn.BorderSizePixel = 0
 
 local delayMinusBtn = Instance.new("TextButton", menuFrame)
-delayMinusBtn.Size = UDim2.new(0, 45, 0, 30)
-delayMinusBtn.Position = UDim2.new(0, 65, 0, 275)
+delayMinusBtn.Size = UDim2.new(0, 50, 0, 35)
+delayMinusBtn.Position = UDim2.new(0, 80, 0, 310)
 delayMinusBtn.Text = "-"
 delayMinusBtn.Font = Enum.Font.GothamBold
-delayMinusBtn.TextSize = 20
-delayMinusBtn.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+delayMinusBtn.TextSize = 25
+delayMinusBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
 delayMinusBtn.TextColor3 = Color3.new(1,1,1)
 delayMinusBtn.BorderSizePixel = 0
 
 delayPlusBtn.MouseButton1Click:Connect(function()
-	delaySteal = delaySteal + 0.5
-	delayLabel.Text = "Delay: " .. string.format("%.1f", delaySteal) .. "s"
+	config.StealDelay = math.min(config.StealDelay + 0.5, 10)
+	delayLabel.Text = "Delay: " .. string.format("%.1f", config.StealDelay) .. "s"
 end)
 
 delayMinusBtn.MouseButton1Click:Connect(function()
-	delaySteal = math.max(0.2, delaySteal - 0.5)
-	delayLabel.Text = "Delay: " .. string.format("%.1f", delaySteal) .. "s"
+	config.StealDelay = math.max(config.StealDelay - 0.5, 0.1)
+	delayLabel.Text = "Delay: " .. string.format("%.1f", config.StealDelay) .. "s"
 end)
