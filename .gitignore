@@ -87,7 +87,7 @@ createButton("🔍 ESP", 40, function()
     end
 end)
 
--- NOCLIP CORRIGIDO TOTAL
+-- NOCLIP TOTAL SEM VOLTAR
 RunService.Stepped:Connect(function()
     if Noclip_ENABLED and localPlayer.Character then
         for _, part in ipairs(localPlayer.Character:GetDescendants()) do
@@ -97,8 +97,9 @@ RunService.Stepped:Connect(function()
             end
         end
         local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid and humanoid.UseJumpPower then
-            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+        if humanoid then
+            humanoid:ChangeState(Enum.HumanoidStateType.FallingDown)
+            humanoid.PlatformStand = false
         end
     end
 end)
@@ -155,27 +156,34 @@ task.spawn(function()
     end
 end)
 
--- PULO INFINITO FUNCIONAL
-uis.JumpRequest:Connect(function()
-    if InfiniteJump_ENABLED then
+-- PULO INFINITO FUNCIONAL E COM PROTEÇÃO DE QUEDA
+uis.InputBegan:Connect(function(input, gp)
+    if InfiniteJump_ENABLED and input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.Space then
         local char = localPlayer.Character
         if char and char:FindFirstChild("Humanoid") then
             char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
         end
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if InfiniteJump_ENABLED and localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid") then
+        localPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+        localPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+        localPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+        localPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
     end
 end)
 
 local jumpButton = createButton("🏊 Pular", 240, function()
-    if InfiniteJump_ENABLED then
-        local char = localPlayer.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        end
+    local char = localPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end)
 
--- GODMODE
-createButton("🛡 Godmode", 290, function()
+-- GODMODE COMPLETO
+createButton("🚡 Godmode", 290, function()
     Godmode_ENABLED = not Godmode_ENABLED
     local char = localPlayer.Character
     if Godmode_ENABLED and char and char:FindFirstChild("Humanoid") then
@@ -183,6 +191,8 @@ createButton("🛡 Godmode", 290, function()
         local newHumanoid = char.Humanoid:Clone()
         newHumanoid.Parent = char
         newHumanoid.Name = "Humanoid"
+        newHumanoid.Health = 1000000
+        newHumanoid.MaxHealth = 1000000
         task.wait(0.1)
         char:FindFirstChild("1"):Destroy()
         workspace.CurrentCamera.CameraSubject = newHumanoid
