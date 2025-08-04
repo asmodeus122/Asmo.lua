@@ -165,10 +165,11 @@ task.spawn(function()
     end
 end)
 
--- NOCLIP ESTÁVEL
+-- NOCLIP ESTÁVEL COM CORREÇÃO PARA NÃO CAIR ABAIXO DA TERRA
 RunService.Stepped:Connect(function()
     if Noclip_ENABLED and localPlayer.Character then
         local char = localPlayer.Character
+        local hrp = char:FindFirstChild("HumanoidRootPart")
         for _, part in ipairs(char:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
@@ -177,9 +178,13 @@ RunService.Stepped:Connect(function()
         end
 
         local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            -- Muda o estado para physics para evitar queda
+        if humanoid and hrp then
             humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+            -- Mantém o personagem ligeiramente elevado para não cair
+            local pos = hrp.Position
+            if pos.Y < workspace.FallenPartsDestroyHeight + 5 then
+                hrp.CFrame = CFrame.new(pos.X, workspace.FallenPartsDestroyHeight + 10, pos.Z)
+            end
         end
     end
 end)
@@ -236,21 +241,9 @@ task.spawn(function()
     end
 end)
 
--- PULO INFINITO REAL (TECLADO E TOUCH)
+-- PULO INFINITO (TECLADO SOMENTE)
 uis.InputBegan:Connect(function(input, gp)
     if InfiniteJump_ENABLED and input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.Space then
-        local char = localPlayer.Character
-        if char then
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            end
-        end
-    end
-end)
-
-uis.TouchTapInWorld:Connect(function()
-    if InfiniteJump_ENABLED then
         local char = localPlayer.Character
         if char then
             local humanoid = char:FindFirstChildOfClass("Humanoid")
