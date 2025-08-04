@@ -1,111 +1,129 @@
-local function main()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoid = character:WaitForChild("Humanoid")
-    local uis = game:GetService("UserInputService")
+-- STEAL A BRAINROT SCRIPT GUI ✅ Mobile e PC
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local root = char:WaitForChild("HumanoidRootPart")
+local hum = char:WaitForChild("Humanoid")
 
-    -- Cria ScreenGui
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "SpeedHubX"
-    screenGui.ResetOnSpawn = false
-    screenGui.Parent = player:WaitForChild("PlayerGui")
+local autoTP = false
+local autoSteal = false
+local noclipOn = false
+local delaySteal = 1
 
-    -- Cria frame principal
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 220, 0, 260)
-    frame.Position = UDim2.new(0, 10, 0, 10)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    frame.BorderSizePixel = 0
-    frame.Parent = screenGui
-
-    -- Função auxiliar para criar botões
-    local function createButton(text, posY, callback)
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, -20, 0, 50)
-        btn.Position = UDim2.new(0, 10, 0, posY)
-        btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        btn.TextColor3 = Color3.new(1, 1, 1)
-        btn.Font = Enum.Font.SourceSansBold
-        btn.TextSize = 20
-        btn.Text = text
-        btn.Parent = frame
-        btn.AutoButtonColor = true
-        btn.MouseButton1Click:Connect(callback)
-        return btn
-    end
-
-    -- Poderes
-
-    local function ghostMode(duration)
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-                part.Transparency = 0.5
-            end
-        end
-        wait(duration)
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
-                part.Transparency = 0
-            end
+-- 📦 ESP
+function highlightBrainrots()
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj:IsA("Model") and obj.Name:lower():find("brainrot") and not obj:FindFirstChild("Highlight") then
+            local h = Instance.new("Highlight", obj)
+            h.FillColor = Color3.new(1, 0, 0)
+            h.OutlineColor = Color3.new(1, 1, 1)
+            h.FillTransparency = 0.3
         end
     end
-
-    local function dash()
-        local hrp = character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            local direction = hrp.CFrame.LookVector
-            hrp.Velocity = Vector3.new(0, hrp.Velocity.Y, 0) + direction * 100
-        end
-    end
-
-    local function speedBoost(duration)
-        local oldSpeed = humanoid.WalkSpeed
-        humanoid.WalkSpeed = 50
-        wait(duration)
-        humanoid.WalkSpeed = oldSpeed
-    end
-
-    local doubleJumpEnabled = false
-    local jumps = 0
-    local maxJumps = 2
-    local function enableDoubleJump()
-        if doubleJumpEnabled then return end
-        doubleJumpEnabled = true
-
-        humanoid.Jumping:Connect(function(active)
-            if active then
-                jumps = jumps + 1
-                if jumps > maxJumps then
-                    humanoid.Jump = false
-                end
-            end
-        end)
-
-        humanoid.StateChanged:Connect(function(old,new)
-            if new == Enum.HumanoidStateType.Landed then
-                jumps = 0
-            end
-        end)
-    end
-
-    -- Botões
-    createButton("Fantasma (5s)", 10, function()
-        ghostMode(5)
-    end)
-
-    createButton("Dash", 70, function()
-        dash()
-    end)
-
-    createButton("Speed Boost (5s)", 130, function()
-        speedBoost(5)
-    end)
-
-    createButton("Pulo Duplo", 190, function()
-        enableDoubleJump()
-    end)
 end
 
-main()
+-- 🧱 Noclip
+game:GetService("RunService").Stepped:Connect(function()
+    if noclipOn then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+-- 🚀 Brainrot mais próximo
+function getClosestBrainrot()
+    local closest, dist = nil, math.huge
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj:IsA("Model") and obj.Name:lower():find("brainrot") and obj:FindFirstChild("HumanoidRootPart") then
+            local d = (obj.HumanoidRootPart.Position - root.Position).Magnitude
+            if d < dist then
+                closest = obj
+                dist = d
+            end
+        end
+    end
+    return closest
+end
+
+-- 🚀 Auto Teleport
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if autoTP then
+            local target = getClosestBrainrot()
+            if target then
+                root.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
+            end
+        end
+    end
+end)
+
+-- 🏃‍♂️ Auto Steal
+task.spawn(function()
+    while true do
+        if autoSteal then
+            local target = getClosestBrainrot()
+            if target then
+                local prompt = target:FindFirstChildWhichIsA("ProximityPrompt", true)
+                if prompt then
+                    fireproximityprompt(prompt)
+                end
+            end
+            task.wait(delaySteal)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- 📱 GUI Touch
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.ResetOnSpawn = false
+
+function createButton(text, pos, callback)
+    local btn = Instance.new("TextButton", gui)
+    btn.Size = UDim2.new(0, 150, 0, 40)
+    btn.Position = pos
+    btn.Text = text
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.BorderSizePixel = 0
+    btn.TextSize = 14
+    btn.Font = Enum.Font.GothamBold
+    btn.AutoButtonColor = true
+    btn.BackgroundTransparency = 0.1
+    btn.Draggable = true
+    btn.MouseButton1Click:Connect(callback)
+end
+
+-- Botões
+createButton("🔍 ESP Brainrots", UDim2.new(0, 20, 0, 100), function()
+    highlightBrainrots()
+end)
+
+createButton("🧱 Noclip (Toggle)", UDim2.new(0, 20, 0, 150), function()
+    noclipOn = not noclipOn
+end)
+
+createButton("🚀 Auto Teleport", UDim2.new(0, 20, 0, 200), function()
+    autoTP = not autoTP
+end)
+
+createButton("🏃‍♂️ Auto Steal", UDim2.new(0, 20, 0, 250), function()
+    autoSteal = not autoSteal
+end)
+
+createButton("⏱️ Aumentar Delay", UDim2.new(0, 180, 0, 200), function()
+    delaySteal = delaySteal + 0.5
+end)
+
+createButton("⏱️ Diminuir Delay", UDim2.new(0, 180, 0, 250), function()
+    delaySteal = math.max(0.1, delaySteal - 0.5)
+end)
+
+-- Pulo Infinito
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+end)
