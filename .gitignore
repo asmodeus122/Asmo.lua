@@ -1,3 +1,5 @@
+-- STEAL A BRAINROT - SCRIPT COMPLETO COM MOD MENU BONITO
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -60,31 +62,47 @@ UserInputService.JumpRequest:Connect(function()
 	end
 end)
 
--- ESP
+-- ESP Brainrots
+local espActive = false
 function highlightBrainrots()
 	for _, obj in pairs(workspace:GetChildren()) do
-		if obj:IsA("Model") and obj.Name:lower():find("brainrot") and obj:FindFirstChild("HumanoidRootPart") and not obj:FindFirstChild("Highlight") then
-			local hl = Instance.new("Highlight", obj)
-			hl.FillColor = Color3.new(1, 0, 0)
-			hl.OutlineColor = Color3.new(1, 1, 1)
-			hl.FillTransparency = 0.3
+		if obj:IsA("Model") and obj.Name:lower():find("brainrot") and obj:FindFirstChild("HumanoidRootPart") then
+			if espActive and not obj:FindFirstChild("Highlight") then
+				local hl = Instance.new("Highlight", obj)
+				hl.FillColor = Color3.new(1, 0, 0)
+				hl.OutlineColor = Color3.new(1, 1, 1)
+				hl.FillTransparency = 0.3
 
-			local billboard = Instance.new("BillboardGui", obj)
-			billboard.Name = "ESPName"
-			billboard.Size = UDim2.new(0, 100, 0, 20)
-			billboard.Adornee = obj:FindFirstChild("HumanoidRootPart")
-			billboard.AlwaysOnTop = true
+				local billboard = Instance.new("BillboardGui", obj)
+				billboard.Name = "ESPName"
+				billboard.Size = UDim2.new(0, 100, 0, 20)
+				billboard.Adornee = obj:FindFirstChild("HumanoidRootPart")
+				billboard.AlwaysOnTop = true
 
-			local label = Instance.new("TextLabel", billboard)
-			label.Size = UDim2.new(1, 0, 1, 0)
-			label.BackgroundTransparency = 1
-			label.TextColor3 = Color3.new(1, 0, 0)
-			label.Text = obj.Name
-			label.TextScaled = true
-			label.Font = Enum.Font.GothamBold
+				local label = Instance.new("TextLabel", billboard)
+				label.Size = UDim2.new(1, 0, 1, 0)
+				label.BackgroundTransparency = 1
+				label.TextColor3 = Color3.new(1, 0, 0)
+				label.Text = obj.Name
+				label.TextScaled = true
+				label.Font = Enum.Font.GothamBold
+			elseif not espActive then
+				local hl = obj:FindFirstChild("Highlight")
+				if hl then hl:Destroy() end
+				local espName = obj:FindFirstChild("ESPName")
+				if espName then espName:Destroy() end
+			end
 		end
 	end
 end
+
+-- Rodar o ESP a cada 2 segundos para manter atualizado
+task.spawn(function()
+	while true do
+		task.wait(2)
+		highlightBrainrots()
+	end
+end)
 
 -- Buscar brainrot mais próximo
 function getClosestBrainrot()
@@ -198,22 +216,10 @@ local function createToggleButton(text, yPos, getState, toggleFunc)
 end
 
 local espBtn = createToggleButton("ESP Brainrots", 60, 
-	function() return _G.espActive end, 
+	function() return espActive end, 
 	function() 
-		_G.espActive = not _G.espActive 
-		if _G.espActive then
-			highlightBrainrots()
-		else
-			-- Remover Highlights e ESPName
-			for _, obj in pairs(workspace:GetChildren()) do
-				if obj:IsA("Model") and obj.Name:lower():find("brainrot") then
-					local hl = obj:FindFirstChild("Highlight")
-					if hl then hl:Destroy() end
-					local espName = obj:FindFirstChild("ESPName")
-					if espName then espName:Destroy() end
-				end
-			end
-		end
+		espActive = not espActive 
+		highlightBrainrots()
 	end)
 
 local noclipBtn = createToggleButton("Noclip", 105, 
@@ -226,4 +232,43 @@ local autoTpBtn = createToggleButton("Auto Teleport", 150,
 
 local autoStealBtn = createToggleButton("Auto Steal", 195, 
 	function() return autoSteal end, 
-	function() autoSteal = not autoS
+	function() autoSteal = not autoSteal end)
+
+local delayLabel = Instance.new("TextLabel", menuFrame)
+delayLabel.Size = UDim2.new(0, 200, 0, 30)
+delayLabel.Position = UDim2.new(0, 10, 0, 240)
+delayLabel.BackgroundTransparency = 1
+delayLabel.Font = Enum.Font.GothamBold
+delayLabel.TextSize = 16
+delayLabel.TextColor3 = Color3.new(1,1,1)
+delayLabel.Text = "Delay: " .. delaySteal .. "s"
+
+local delayPlusBtn = Instance.new("TextButton", menuFrame)
+delayPlusBtn.Size = UDim2.new(0, 45, 0, 30)
+delayPlusBtn.Position = UDim2.new(0, 10, 0, 275)
+delayPlusBtn.Text = "+"
+delayPlusBtn.Font = Enum.Font.GothamBold
+delayPlusBtn.TextSize = 20
+delayPlusBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+delayPlusBtn.TextColor3 = Color3.new(1,1,1)
+delayPlusBtn.BorderSizePixel = 0
+
+local delayMinusBtn = Instance.new("TextButton", menuFrame)
+delayMinusBtn.Size = UDim2.new(0, 45, 0, 30)
+delayMinusBtn.Position = UDim2.new(0, 65, 0, 275)
+delayMinusBtn.Text = "-"
+delayMinusBtn.Font = Enum.Font.GothamBold
+delayMinusBtn.TextSize = 20
+delayMinusBtn.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+delayMinusBtn.TextColor3 = Color3.new(1,1,1)
+delayMinusBtn.BorderSizePixel = 0
+
+delayPlusBtn.MouseButton1Click:Connect(function()
+	delaySteal = delaySteal + 0.5
+	delayLabel.Text = "Delay: " .. string.format("%.1f", delaySteal) .. "s"
+end)
+
+delayMinusBtn.MouseButton1Click:Connect(function()
+	delaySteal = math.max(0.2, delaySteal - 0.5)
+	delayLabel.Text = "Delay: " .. string.format("%.1f", delaySteal) .. "s"
+end)
