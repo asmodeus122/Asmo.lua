@@ -1,315 +1,145 @@
---[[
-Steal A Brainrot - Script Profissional com noclip e pulo infinito 100% funcionais
-Compatível PC e Mobile (Delta, Hydrogen, ArceusX)
-Autor: SeuNomeAqui
-]]
-
--- Serviços usados
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local PhysicsService = game:GetService("PhysicsService")
-local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local uis = game:GetService("UserInputService")
+local localPlayer = Players.LocalPlayer
+local ESP_ENABLED = false
+local Noclip_ENABLED = false
+local Teleport_ENABLED = false
+local Steal_ENABLED = false
 
--- Variáveis principais
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-local humanoid = character:WaitForChild("Humanoid")
-
--- Estado e configurações
-local config = {
-    AutoTeleport = false,
-    AutoSteal = false,
-    Noclip = true, -- noclip ativado assim que o script roda
-    ESP = false,
-    StealDelay = 1.0,
-    MaxExtraJumps = 3,
-    JumpCooldown = 0.4,
-}
-
--- Variáveis internas
-local extraJumps = 0
-local lastJumpTick = 0
-
--- Criar CollisionGroup para noclip se não existir
-local function setupCollisionGroup()
-    local success, err = pcall(function()
-        if not PhysicsService:CollisionGroupExists("NoCollide") then
-            PhysicsService:CreateCollisionGroup("NoCollide")
-            PhysicsService:CollisionGroupSetCollidable("NoCollide", "Default", false)
-        end
-    end)
-    if not success then
-        warn("Erro criando CollisionGroup: ", err)
-    end
-end
-
-setupCollisionGroup()
-
--- Noclip usando CollisionGroup e ajustando partes a todo Stepped
-RunService.Stepped:Connect(function()
-    if config.Noclip and character and character.Parent then
-        for _, part in ipairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-                part.Anchored = false
-                PhysicsService:SetPartCollisionGroup(part, "NoCollide")
-            end
-        end
-    end
-end)
-
--- Pulo infinito com cooldown e reset ao tocar no chão
-humanoid.StateChanged:Connect(function(old, new)
-    if new == Enum.HumanoidStateType.Landed then
-        extraJumps = 0
-    end
-end)
-
-UserInputService.JumpRequest:Connect(function()
-    local now = tick()
-    if now - lastJumpTick < config.JumpCooldown then return end
-    lastJumpTick = now
-
-    local state = humanoid:GetState()
-    if (state == Enum.HumanoidStateType.Freefall or state == Enum.HumanoidStateType.Jumping or state == Enum.HumanoidStateType.Landed) and extraJumps < config.MaxExtraJumps then
-        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        extraJumps += 1
-    elseif state == Enum.HumanoidStateType.Running or state == Enum.HumanoidStateType.Landed then
-        extraJumps = 0
-    end
-end)
-
--- Função para limpar Highlights e ESP antigos
-local function clearESP()
-    for _, obj in ipairs(workspace:GetChildren()) do
-        if obj:IsA("Model") then
-            local hl = obj:FindFirstChild("Highlight")
-            if hl then hl:Destroy() end
-            local billboard = obj:FindFirstChild("ESPName")
-            if billboard then billboard:Destroy() end
-        end
-    end
-end
-
--- Função para destacar Brainrots (ESP)
-local function updateESP()
-    for _, obj in ipairs(workspace:GetChildren()) do
-        if obj:IsA("Model") and obj.Name:lower():find("brainrot") and obj:FindFirstChild("HumanoidRootPart") then
-            local hl = obj:FindFirstChild("Highlight")
-            local billboard = obj:FindFirstChild("ESPName")
-            if config.ESP then
-                if not hl then
-                    hl = Instance.new("Highlight")
-                    hl.Name = "Highlight"
-                    hl.FillColor = Color3.new(1, 0, 0)
-                    hl.OutlineColor = Color3.new(1, 1, 1)
-                    hl.FillTransparency = 0.3
-                    hl.Parent = obj
-                end
-                if not billboard then
-                    billboard = Instance.new("BillboardGui")
-                    billboard.Name = "ESPName"
-                    billboard.Size = UDim2.new(0, 120, 0, 25)
-                    billboard.Adornee = obj.HumanoidRootPart
-                    billboard.AlwaysOnTop = true
-                    billboard.Parent = obj
-
-                    local label = Instance.new("TextLabel")
-                    label.Size = UDim2.new(1, 0, 1, 0)
-                    label.BackgroundTransparency = 1
-                    label.TextColor3 = Color3.new(1, 0, 0)
-                    label.TextStrokeTransparency = 0
-                    label.TextStrokeColor3 = Color3.new(0,0,0)
-                    label.TextScaled = true
-                    label.Font = Enum.Font.GothamBold
-                    label.Text = obj.Name
-                    label.Parent = billboard
-                end
-            else
-                if hl then hl:Destroy() end
-                if billboard then billboard:Destroy() end
-            end
-        end
-    end
-end
-
--- Atualiza ESP a cada 2 segundos
-spawn(function()
-    while true do
-        wait(2)
-        updateESP()
-    end
-end)
-
--- Função para buscar brainrot mais próximo
-local function getClosestBrainrot()
-    local closest, dist = nil, math.huge
-    for _, obj in ipairs(workspace:GetChildren()) do
-        if obj:IsA("Model") and obj.Name:lower():find("brainrot") and obj:FindFirstChild("HumanoidRootPart") then
-            local d = (obj.HumanoidRootPart.Position - rootPart.Position).Magnitude
-            if d < dist then
-                closest = obj
-                dist = d
-            end
-        end
-    end
-    return closest
-end
-
--- Auto Teleport com espera para estabilidade
-spawn(function()
-    while true do
-        wait(0.15)
-        if config.AutoTeleport then
-            local target = getClosestBrainrot()
-            if target and target.Parent then
-                local hrp = target:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    rootPart.CFrame = hrp.CFrame * CFrame.new(0, 3, -3)
-                end
-            end
-        end
-    end
-end)
-
--- Auto Steal com InputHoldBegin/End para compatibilidade máxima
-spawn(function()
-    while true do
-        if config.AutoSteal then
-            local target = getClosestBrainrot()
-            if target and target.Parent then
-                local prompt = target:FindFirstChildWhichIsA("ProximityPrompt", true)
-                if prompt and prompt.Enabled then
-                    prompt:InputHoldBegin()
-                    wait(0.15)
-                    prompt:InputHoldEnd()
-                end
-            end
-            wait(config.StealDelay)
-        else
-            wait(0.5)
-        end
-    end
-end)
-
--- Criar GUI profissional e responsiva
-
-local function createToggleButton(parent, text, yPos, getState, toggleFunc)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(0, 210, 0, 40)
-    btn.Position = UDim2.new(0, 15, 0, yPos)
-    btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-    btn.BorderSizePixel = 0
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 17
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.Text = text .. " : OFF"
-    btn.AutoButtonColor = false
-
-    local function updateButton()
-        if getState() then
-            btn.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
-            btn.Text = text .. " : ON"
-        else
-            btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-            btn.Text = text .. " : OFF"
-        end
-    end
-
-    btn.MouseEnter:Connect(function()
-        btn.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
-    end)
-    btn.MouseLeave:Connect(function()
-        updateButton()
-    end)
-
-    btn.MouseButton1Click:Connect(function()
-        toggleFunc()
-        updateButton()
-    end)
-
-    updateButton()
-    return btn
-end
-
-local gui = Instance.new("ScreenGui")
-gui.Name = "StealBrainrotMenu"
+-- Create GUI
+local gui = Instance.new("ScreenGui", localPlayer:WaitForChild("PlayerGui"))
 gui.ResetOnSpawn = false
-gui.Parent = CoreGui
 
-local menuFrame = Instance.new("Frame", gui)
-menuFrame.Size = UDim2.new(0, 240, 0, 350)
-menuFrame.Position = UDim2.new(0, 15, 0, 120)
-menuFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-menuFrame.BackgroundTransparency = 0.15
-menuFrame.BorderSizePixel = 0
-menuFrame.ClipsDescendants = true
-menuFrame.Active = true
-menuFrame.Draggable = true
+local function createButton(text, position, callback)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0, 140, 0, 40)
+	button.Position = position
+	button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.Font = Enum.Font.GothamBold
+	button.TextSize = 14
+	button.Text = text
+	button.Parent = gui
+	button.MouseButton1Click:Connect(callback)
+	return button
+end
 
-local title = Instance.new("TextLabel", menuFrame)
-title.Size = UDim2.new(1, 0, 0, 50)
-title.BackgroundTransparency = 1
-title.Text = "Steal Brainrot Menu"
-title.Font = Enum.Font.GothamBold
-title.TextSize = 22
-title.TextColor3 = Color3.fromRGB(255, 100, 100)
-title.TextStrokeTransparency = 0
-title.TextStrokeColor3 = Color3.new(0,0,0)
+-- ESP FUNCTION
+function updateESP()
+	for _, v in pairs(workspace:GetDescendants()) do
+		if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") and v.Name:lower():find("brainrot") then
+			if not v:FindFirstChild("ESP") then
+				local billboard = Instance.new("BillboardGui", v)
+				billboard.Name = "ESP"
+				billboard.Adornee = v.HumanoidRootPart
+				billboard.Size = UDim2.new(0, 100, 0, 40)
+				billboard.AlwaysOnTop = true
 
-local espBtn = createToggleButton(menuFrame, "ESP Brainrots", 70,
-    function() return config.ESP end,
-    function() config.ESP = not config.ESP updateESP() end)
+				local label = Instance.new("TextLabel", billboard)
+				label.Size = UDim2.new(1, 0, 1, 0)
+				label.BackgroundTransparency = 1
+				label.TextColor3 = Color3.fromRGB(255, 0, 0)
+				label.Font = Enum.Font.GothamBold
+				label.TextScaled = true
+				label.Text = v.Name
+			end
+		end
+	end
+end
 
-local noclipBtn = createToggleButton(menuFrame, "Noclip", 120,
-    function() return config.Noclip end,
-    function() config.Noclip = not config.Noclip end)
-
-local autoTpBtn = createToggleButton(menuFrame, "Auto Teleport", 170,
-    function() return config.AutoTeleport end,
-    function() config.AutoTeleport = not config.AutoTeleport end)
-
-local autoStealBtn = createToggleButton(menuFrame, "Auto Steal", 220,
-    function() return config.AutoSteal end,
-    function() config.AutoSteal = not config.AutoSteal end)
-
-local delayLabel = Instance.new("TextLabel", menuFrame)
-delayLabel.Size = UDim2.new(0, 210, 0, 35)
-delayLabel.Position = UDim2.new(0, 15, 0, 270)
-delayLabel.BackgroundTransparency = 1
-delayLabel.Font = Enum.Font.GothamBold
-delayLabel.TextSize = 17
-delayLabel.TextColor3 = Color3.fromRGB(255,255,255)
-delayLabel.Text = "Delay: " .. string.format("%.1f", config.StealDelay) .. "s"
-
-local delayPlusBtn = Instance.new("TextButton", menuFrame)
-delayPlusBtn.Size = UDim2.new(0, 50, 0, 35)
-delayPlusBtn.Position = UDim2.new(0, 15, 0, 310)
-delayPlusBtn.Text = "+"
-delayPlusBtn.Font = Enum.Font.GothamBold
-delayPlusBtn.TextSize = 25
-delayPlusBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
-delayPlusBtn.TextColor3 = Color3.new(1,1,1)
-delayPlusBtn.BorderSizePixel = 0
-
-local delayMinusBtn = Instance.new("TextButton", menuFrame)
-delayMinusBtn.Size = UDim2.new(0, 50, 0, 35)
-delayMinusBtn.Position = UDim2.new(0, 80, 0, 310)
-delayMinusBtn.Text = "-"
-delayMinusBtn.Font = Enum.Font.GothamBold
-delayMinusBtn.TextSize = 25
-delayMinusBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
-delayMinusBtn.TextColor3 = Color3.new(1,1,1)
-delayMinusBtn.BorderSizePixel = 0
-
-delayPlusBtn.MouseButton1Click:Connect(function()
-    config.StealDelay = math.min(config.StealDelay + 0.5, 10)
-    delayLabel.Text = "Delay: " .. string.format("%.1f", config.StealDelay) .. "s"
+-- Noclip REAL
+RunService.Stepped:Connect(function()
+	if Noclip_ENABLED and localPlayer.Character then
+		for _, part in pairs(localPlayer.Character:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.CanCollide = false
+			end
+		end
+	end
 end)
 
-delayMinusBtn.MouseButton1Click:Connect(function()
-    config.StealDelay = math.max(config.StealDelay - 0.5, 0.1)
-    delayLabel.Text = "Delay: " .. string.format("%.1f", config.StealDelay) .. "s"
+-- PULO INFINITO REAL
+uis.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.KeyCode == Enum.KeyCode.Space or input.UserInputType == Enum.UserInputType.Touch then
+		local char = localPlayer.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			char.HumanoidRootPart.Velocity = Vector3.new(0, 50, 0)
+		end
+	end
 end)
+
+-- AUTO TELEPORT
+function getClosestBrainrot()
+	local minDist, closest = math.huge, nil
+	for _, v in pairs(workspace:GetDescendants()) do
+		if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") and v.Name:lower():find("brainrot") then
+			local dist = (v.HumanoidRootPart.Position - localPlayer.Character.HumanoidRootPart.Position).Magnitude
+			if dist < minDist then
+				minDist = dist
+				closest = v
+			end
+		end
+	end
+	return closest
+end
+
+task.spawn(function()
+	while task.wait(0.5) do
+		if Teleport_ENABLED and localPlayer.Character then
+			local target = getClosestBrainrot()
+			if target then
+				local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+				if hrp then hrp.CFrame = target.HumanoidRootPart.CFrame + Vector3.new(0, 2, 0) end
+			end
+		end
+	end
+end)
+
+-- AUTO STEAL
+task.spawn(function()
+	while task.wait(1.5) do
+		if Steal_ENABLED then
+			for _, v in pairs(workspace:GetDescendants()) do
+				if v:IsA("ProximityPrompt") and v.Enabled then
+					fireproximityprompt(v)
+				end
+			end
+		end
+	end
+end)
+
+-- BUTTONS
+createButton("🔍 ESP", UDim2.new(0, 10, 0, 50), function()
+	ESP_ENABLED = not ESP_ENABLED
+	if ESP_ENABLED then
+		while ESP_ENABLED do
+			updateESP()
+			wait(2)
+		end
+	else
+		for _, gui in pairs(workspace:GetDescendants()) do
+			if gui:IsA("BillboardGui") and gui.Name == "ESP" then
+				gui:Destroy()
+			end
+		end
+	end
+end)
+
+createButton("🧱 Noclip", UDim2.new(0, 10, 0, 100), function()
+	Noclip_ENABLED = not Noclip_ENABLED
+end)
+
+createButton("🚀 Auto TP", UDim2.new(0, 10, 0, 150), function()
+	Teleport_ENABLED = not Teleport_ENABLED
+end)
+
+createButton("🏃‍♂️ Auto Steal", UDim2.new(0, 10, 0, 200), function()
+	Steal_ENABLED = not Steal_ENABLED
+end)
+
+-- Ativando ESP e noclip por padrão (opcional)
+ESP_ENABLED = true
+Noclip_ENABLED = true
