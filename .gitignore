@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local uis = game:GetService("UserInputService")
+local ContextActionService = game:GetService("ContextActionService")
 local localPlayer = Players.LocalPlayer
 local ESP_ENABLED = false
 local Noclip_ENABLED = false
@@ -23,7 +24,7 @@ frame.Parent = gui
 
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "🧠 Mod Menu"
+title.Text = "🧠 ASMO HUB"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
@@ -83,17 +84,22 @@ createButton("🔍 ESP", 40, function()
     end
 end)
 
--- NOCLIP REFORÇADO
+-- NOCLIP REFORÇADO SEM PLATFORMSTAND
 RunService.Stepped:Connect(function()
     if Noclip_ENABLED and localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid") then
-        localPlayer.Character:FindFirstChildOfClass("Humanoid").PlatformStand = true
         for _, part in pairs(localPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
+                part.Velocity = Vector3.new(0, 0, 0)
+                part.RotVelocity = Vector3.new(0, 0, 0)
             end
         end
-    elseif localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid") then
-        localPlayer.Character:FindFirstChildOfClass("Humanoid").PlatformStand = false
+    elseif localPlayer.Character then
+        for _, part in pairs(localPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
     end
 end)
 
@@ -149,21 +155,12 @@ task.spawn(function()
     end
 end)
 
--- PULO INFINITO REAJUSTADO
-local canJump = true
-uis.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.Space then
+-- PULO INFINITO CORRIGIDO (COMPATÍVEL COM MOBILE)
+ContextActionService:BindAction("InfiniteJump", function(_, inputState)
+    if inputState == Enum.UserInputState.Begin then
         local char = localPlayer.Character
-        if char and char:FindFirstChild("Humanoid") and canJump then
-            canJump = false
+        if char and char:FindFirstChild("Humanoid") then
             char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            wait(0.15)
-            canJump = true
         end
     end
-end)
-
--- Ativa automaticamente ESP e noclip se quiser
--- ESP_ENABLED = true
--- Noclip_ENABLED = true
+end, false, Enum.KeyCode.Space, Enum.UserInputType.Touch)
